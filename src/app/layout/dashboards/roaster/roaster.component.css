@@ -1,0 +1,9 @@
+:host {
+  display: block;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}

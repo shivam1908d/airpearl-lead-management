@@ -1,0 +1,28 @@
+.funnel-step {
+  height: 100%;
+  position: relative;
+ 
+  clip-path: polygon(4% 0%, 96% 0%, 91% 100%, 9% 100%);
+    //  clip-path: polygon(4% 0%, 96% 0%, 88% 100%, 12% 100%);
+  border-radius: 8px; 
+  overflow: hidden;
+  
+  // Shadow effect for depth
+  box-shadow: inset 0px -2px 5px rgba(0,0,0,0.1);
+  
+  // Text color adjustment based on dark background
+//   color: #1e293b; 
+//   &[style*="background-color: #1e1b4b"],
+//   &[style*="background-color: #581c87"],
+//   &[style*="background-color: #2e1065"] {
+//     color: white; // Dark colors par text white dikhega
+//   }
+// }
+
+// // Responsive adjustments
+// @media (max-width: 640px) {
+//   .funnel-step {
+//     clip-path: polygon(0% 0%, 100% 0%, 92% 100%, 8% 100%);
+//   }
+// }
+}

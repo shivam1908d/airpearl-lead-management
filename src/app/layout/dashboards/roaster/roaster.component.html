@@ -1,0 +1,222 @@
+<section class="min-h-screen bg-slate-100 p-4 text-slate-800 md:p-6">
+  <div class="mx-auto max-w-7xl rounded-3xl border border-slate-200 bg-white shadow-sm">
+    <header class="flex flex-col gap-4 border-b border-slate-200 px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-sky-600">Operations</p>
+        <h1 class="mt-1 text-2xl font-semibold text-slate-900">Aircraft Roster</h1>
+      </div>
+
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <label class="relative block">
+          <span class="sr-only">Search crew</span>
+          <input
+            type="text"
+            placeholder="Search crew"
+            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 pr-10 text-sm text-slate-700 outline-none transition focus:border-sky-400 focus:bg-white sm:w-56"
+          />
+        </label>
+
+        <select class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-sky-400 focus:bg-white">
+          <option>All roles</option>
+          <option>Trainee</option>
+          <option>Captain</option>
+          <option>Instructor</option>
+          <option>Flight Attendant</option>
+        </select>
+      </div>
+    </header>
+
+    <div class="overflow-x-auto p-4 sm:p-6">
+      <div class="min-w-[920px] rounded-2xl border border-slate-200 bg-slate-50 p-3">
+        <div class="grid grid-cols-[120px_repeat(5,minmax(150px,1fr))] gap-2">
+          <div class="rounded-xl bg-white px-3 py-4 text-sm font-medium text-slate-500">Time</div>
+
+          <div *ngFor="let day of rosterDays" class="rounded-xl bg-white px-3 py-4 text-center shadow-sm">
+            <div class="text-sm font-semibold text-slate-800">{{ day.label }}</div>
+            <div class="mt-1 text-xs text-slate-500">{{ day.date | date: 'MMM d' }}</div>
+          </div>
+
+          <ng-container *ngFor="let slot of timeSlots">
+            <div class="flex items-center justify-center rounded-xl bg-white px-3 py-4 text-sm font-medium text-slate-600 shadow-sm">
+              {{ slot.label }}
+            </div>
+
+            <div
+              *ngFor="let day of rosterDays"
+              class="min-h-[140px] rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm transition hover:border-sky-300 hover:bg-sky-50/40"
+              (click)="openSlot(day, slot)"
+            >
+              <ng-container *ngIf="getAssignment(day, slot) as assignment; else emptySlot">
+                <div class="flex h-full flex-col justify-between">
+                  <div>
+                    <div class="flex items-start justify-between gap-2">
+                      <div class="text-sm font-semibold text-slate-900">{{ assignment.personName }}</div>
+                      <span class="rounded-full bg-sky-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-sky-700">
+                        {{ assignment.role }}
+                      </span>
+                    </div>
+                    <div class="mt-2 text-xs text-slate-500">{{ assignment.dayLabel }} · {{ assignment.date | date: 'MMM d' }}</div>
+                  </div>
+
+                  <div class="mt-3 space-y-1 text-xs text-slate-600">
+                    <div class="font-medium text-slate-700">{{ assignment.aircraft }}</div>
+                    <div>{{ assignment.startTime }} - {{ assignment.endTime }}</div>
+                  </div>
+
+                  <div class="mt-3 flex items-center gap-2">
+                    <button
+                      type="button"
+                      class="rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-200"
+                      (click)="editAssignment(day.date + '__' + slot.key); $event.stopPropagation()"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-[11px] font-medium text-red-600 transition hover:bg-red-100"
+                      (click)="removeAssignment(day.date + '__' + slot.key); $event.stopPropagation()"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              </ng-container>
+
+              <ng-template #emptySlot>
+                <div class="flex h-full min-h-[110px] items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-sm font-medium text-slate-400 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600">
+                  + Assign
+                </div>
+              </ng-template>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mx-auto mt-6 max-w-7xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+    <div class="border-b border-slate-200 px-4 py-4 sm:px-6">
+      <h2 class="text-lg font-semibold text-slate-900">Roster Assignments</h2>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
+        <thead class="bg-slate-50 text-slate-600">
+          <tr>
+            <th class="px-4 py-3 font-medium">Date</th>
+            <th class="px-4 py-3 font-medium">Day</th>
+            <th class="px-4 py-3 font-medium">Person Name</th>
+            <th class="px-4 py-3 font-medium">Role</th>
+            <th class="px-4 py-3 font-medium">Aircraft</th>
+            <th class="px-4 py-3 font-medium">Start Time</th>
+            <th class="px-4 py-3 font-medium">End Time</th>
+            <th class="px-4 py-3 font-medium">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 bg-white">
+          <tr *ngFor="let assignment of rosterAssignments" class="align-top">
+            <td class="px-4 py-3 text-slate-700">{{ assignment.date | date: 'MMM d, y' }}</td>
+            <td class="px-4 py-3 text-slate-700">{{ assignment.dayLabel }}</td>
+            <td class="px-4 py-3 font-medium text-slate-900">{{ assignment.personName }}</td>
+            <td class="px-4 py-3 text-slate-700">{{ assignment.role }}</td>
+            <td class="px-4 py-3 text-slate-700">{{ assignment.aircraft }}</td>
+            <td class="px-4 py-3 text-slate-700">{{ assignment.startTime }}</td>
+            <td class="px-4 py-3 text-slate-700">{{ assignment.endTime }}</td>
+            <td class="px-4 py-3">
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  class="rounded-lg border border-slate-200 bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-200"
+                  (click)="editRosterAssignment(assignment)"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  class="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100"
+                  (click)="deleteRosterAssignment(assignment)"
+                >
+                  Delete
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="rosterAssignments.length === 0">
+            <td colspan="8" class="px-4 py-8 text-center text-slate-500">No roster assignments yet.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<div *ngIf="isModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
+  <div class="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl">
+    <div class="mb-5 flex items-center justify-between">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-sky-600">Roster</p>
+        <h2 class="mt-1 text-xl font-semibold text-slate-900">Assign crew</h2>
+      </div>
+
+      <button type="button" class="text-slate-500 transition hover:text-slate-700" (click)="closeModal()">
+        ✕
+      </button>
+    </div>
+
+    <div class="grid gap-4 md:grid-cols-2">
+      <label class="space-y-1.5 text-sm font-medium text-slate-700">
+        <span>Date</span>
+        <input type="date" [(ngModel)]="form.date" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 outline-none transition focus:border-sky-400 focus:bg-white" />
+      </label>
+
+      <label class="space-y-1.5 text-sm font-medium text-slate-700">
+        <span>Week / Day</span>
+        <select [(ngModel)]="form.dayLabel" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 outline-none transition focus:border-sky-400 focus:bg-white">
+          <option *ngFor="let day of dayOptions" [value]="day">{{ day }}</option>
+        </select>
+      </label>
+
+      <label class="space-y-1.5 text-sm font-medium text-slate-700 md:col-span-2">
+        <span>Person Name</span>
+        <input type="text" [(ngModel)]="form.personName" placeholder="e.g. Emma Clarke" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 outline-none transition focus:border-sky-400 focus:bg-white" />
+      </label>
+
+      <label class="space-y-1.5 text-sm font-medium text-slate-700">
+        <span>Role</span>
+        <select [(ngModel)]="form.role" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 outline-none transition focus:border-sky-400 focus:bg-white">
+          <option *ngFor="let role of roles" [value]="role">{{ role }}</option>
+        </select>
+      </label>
+
+      <label class="space-y-1.5 text-sm font-medium text-slate-700">
+        <span>Aircraft / Plane</span>
+        <input type="text" [(ngModel)]="form.aircraft" placeholder="A320" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 outline-none transition focus:border-sky-400 focus:bg-white" />
+      </label>
+
+      <label class="space-y-1.5 text-sm font-medium text-slate-700">
+        <span>Start Time</span>
+        <input type="time" [(ngModel)]="form.startTime" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 outline-none transition focus:border-sky-400 focus:bg-white" />
+      </label>
+
+      <label class="space-y-1.5 text-sm font-medium text-slate-700">
+        <span>End Time</span>
+        <input type="time" [(ngModel)]="form.endTime" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 outline-none transition focus:border-sky-400 focus:bg-white" />
+      </label>
+    </div>
+
+    <div class="mt-6 flex justify-end gap-3">
+      <button type="button" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50" (click)="closeModal()">
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-sky-300"
+        [disabled]="!isFormValid"
+        (click)="assignRoster()"
+      >
+        Assign
+      </button>
+    </div>
+  </div>
+</div>

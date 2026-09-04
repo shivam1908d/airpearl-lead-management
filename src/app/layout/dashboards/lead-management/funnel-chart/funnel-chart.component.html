@@ -1,0 +1,46 @@
+<!-- <div class="bg-white rounded-xl shadow-sm h-[500px] flex flex-col p-6"> -->
+<div class="p-6 bg-white rounded-xl shadow-lg border border-gray-100 w-full max-w-3xl mx-auto h-full max-h-[400px] flex flex-col">
+
+  <h2 class="text-base font-semibold mb-6">Lead Stages & Channels</h2>
+   <div class="flex-1 flex flex-col gap-1.5 min-h-0">
+    <div *ngFor="let stage of leadStages; let i = index" class="flex items-center h-10">
+      
+      <div class="w-[140px] text-left pr-4">
+        <span class="text-sm font-bold text-gray-600">{{ stage.label }}</span>
+      </div>
+
+      <div class="flex-1 flex justify-center items-center relative h-full">
+        <div 
+          class="funnel-step flex items-center justify-center text-gray-800  font-bold transition-all duration-300 hover:opacity-90 cursor-pointer"
+          [style.background-color]="stage.color"
+          [style.width.%]="100 - (i * 12)" 
+          [style.z-index]="10 - i"
+        >
+          {{ stage.count }}
+        </div>
+      </div>
+
+      <div class="w-1/6 pl-8">
+        <span class="text-sm font-semibold text-gray-500">{{ getPercentage(stage.count) }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-6 flex justify-center items-center space-x-10 text-sm  pt-6">
+    <div class="flex items-center">
+      <span class="w-3 h-3 rounded-full bg-red-400 mr-2"></span>
+      <span class="text-gray-600 font-medium">Lost <b class="text-gray-500 ml-1">10%</b></span>
+    </div>
+    <div class="flex items-center ">
+  <span class="w-3 h-3 rounded-full bg-gray-400 mr-2"></span>
+
+  <span class="text-gray-600 font-medium">
+    On Hold
+    <b class="text-gray-500 ml-1">
+      <!-- {{ onHoldCount }} --> {{ onHoldPercentage }}
+    </b>
+  </span>
+</div>
+  </div>
+
+</div>

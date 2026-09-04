@@ -1,0 +1,38 @@
+import { Component } from '@angular/core';
+import { Router } from '@angular/router';
+import { RouterOutlet } from '@angular/router';
+
+
+@Component({
+  selector: 'app-dashboards',
+  standalone: true,
+  imports: [RouterOutlet],
+  templateUrl: './dashboards.component.html',
+  styleUrl: './dashboards.component.css'
+})
+
+export class DashboardsComponent {
+
+  pageTitle = '';
+
+  constructor(private router: Router){
+
+    this.router.events.subscribe(() => {
+
+      if(this.router.url.includes('roaster')){
+        this.pageTitle = 'Roaster';
+      }
+
+      if(this.router.url.includes('fdtl')){
+        this.pageTitle = 'FDTL';
+      }
+
+      if(this.router.url.includes('lead-management')){
+        this.pageTitle = 'Lead Management';
+      }
+
+    });
+
+  }
+
+}

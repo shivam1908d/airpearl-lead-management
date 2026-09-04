@@ -1,0 +1,112 @@
+<!-- ===== Lead Table Ui ===== -->
+<div class="bg-white p-6 rounded-xl shadow-sm">
+  <!-- ===== Lead Table Ui ===== -->
+
+  <!-- Top Filters -->
+  <div class="mt-4 bg-white rounded-xl  border-gray-100 shadow-sm overflow-hidden">
+  
+  <div class="p-4 flex flex-wrap items-center justify-between gap-4 border-b border-gray-50">
+    <div class="flex items-center gap-2">
+        <i class="pi pi-filter text-gray-500 text-sm"></i>
+
+      <!--Source Dropdown -->
+       <p-dropdown
+        class="text-xs font-bold text-gray-600"
+        [options]="sources"
+        [(ngModel)]="selectedSource"
+        (onChange)="applyFilters()"
+        placeholder="Sources"
+        appendTo="body"
+        styleClass="border-none shadow-none focus:ring-0">
+        <ng-template pTemplate="selectedItem">
+          <span>
+            Source <span class="font-bold">{{selectedSource}}</span>  
+            
+          </span>
+        </ng-template>
+      </p-dropdown>
+      <!-- Stage Dropdown -->
+     <p-dropdown
+       [options]="stages"
+       [(ngModel)]="selectedStage"
+       (onChange)="applyFilters()"
+       placeholder="Stages"
+       appendTo="body"
+       styleClass="border-none shadow-none focus:ring-0">
+        <ng-template pTemplate="selectedItem">
+            <span>
+              Stages <span class="font-bold">{{selectedStage}}</span>
+            
+            </span>
+          </ng-template>
+  </p-dropdown>
+      
+         <div class="flex items-center gap-2 cursor-pointer">
+          <p-calendar
+            [(ngModel)]="selectedDate"
+            (onSelect)="applyFilters()"
+             dateFormat="dd/mm/yy"
+            placeholder="Date All"
+            [showButtonBar]="true"
+            [readonlyInput]="true"
+             appendTo="body"
+            styleClass="border-none shadow-none focus:ring-0">
+         </p-calendar>
+       </div>
+     </div>
+
+    <div class="flex items-center gap-3">
+      <div class="relative">
+        <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+        <input type="text" placeholder="Search Leads" 
+               class="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-xs w-64 focus:outline-none focus:border-blue-400">
+      </div>
+      <button class="bg-[#2D60FF] text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2">
+        <i class="pi pi-upload"></i> Export
+      </button>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <p-table
+    [value]="filteredLeads"
+    responsiveLayout="scroll"
+    class="p-datatable-sm">
+    <ng-template pTemplate="header">
+      <tr class="bg-gray-200">
+        <th>Lead ID</th>
+        <th>Lead Name</th>
+        <th>Phone Number</th>
+        <th>Email ID</th>
+        <th>Status</th>
+        <th>Contacted Date</th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-lead>
+      <tr class="hover:bg-gray-50 transition border-b border-gray-200">
+        <td class="text-blue-600 font-medium cursor-pointer">
+          {{ lead.id }}
+        </td>
+
+        <td>{{ lead.name }}</td>
+
+        <td>{{ lead.phone }}</td>
+
+        <td>{{ lead.email }}</td>
+
+        <td>
+          <span
+            class="px-3 py-1 rounded-full text-xs font-semibold"
+            [ngClass]="getStatusClass(lead.status)">
+            {{ lead.status }}
+          </span>
+        </td>
+
+        <td>{{ lead.contactedDate }}</td>
+      </tr>
+    </ng-template>
+
+  </p-table>
+
+</div>
