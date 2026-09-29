@@ -6,31 +6,36 @@
     <router-outlet></router-outlet>
 </div> -->
 
-<div class="flex h-screen">
+<div class="flex h-screen overflow-hidden bg-gray-50">
 
   <!-- Sidebar -->
-  <div
-    class="bg-white border-r transition-all duration-300 overflow-hidden"
-    [class.w-56]="isSidebarOpen"
-    [class.w-0]="!isSidebarOpen"
+  <aside
+    class="fixed inset-y-0 left-0 z-40 flex h-screen overflow-hidden border-r border-gray-200 bg-white shadow-lg transition-all duration-300 md:static md:shadow-none"
+    [ngClass]="{
+      'translate-x-0': isSidebarOpen,
+      '-translate-x-full': !isSidebarOpen,
+      'w-64': isSidebarOpen,
+      'w-0': !isSidebarOpen,
+      'md:w-56': isSidebarOpen,
+      'md:w-0': !isSidebarOpen,
+      'md:translate-x-0': isSidebarOpen
+    }"
   >
     <app-sidebar></app-sidebar>
-  </div>
-
-  
+  </aside>
 
   <!-- Right side -->
-  <div class="flex-1 flex flex-col">
+  <div class="flex min-w-0 flex-1 flex-col">
 
     <!-- Header -->
-    <app-header 
-         (toggleSidebar)="toggleSidebar()">
-    </app-header>
+    <app-header (toggleSidebar)="toggleSidebar()"></app-header>
 
     <!-- Page content -->
-    <div class="flex-1 p-6 bg-gray-50 overflow-auto">
-      <router-outlet></router-outlet>
-    </div>
+    <main class="flex-1 overflow-auto bg-gray-50 p-3 sm:p-4 md:p-6">
+      <div class="h-full w-full">
+        <router-outlet></router-outlet>
+      </div>
+    </main>
 
   </div>
 
