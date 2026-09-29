@@ -1,56 +1,56 @@
 <!-- ==Right Side>lead activity metrics card ==-->
  
-<div class="bg-white rounded-xl shadow-sm h-[400px] flex flex-col p-6">
+<div class="bg-white rounded-xl shadow-sm min-h-[400px] w-full min-w-0 flex flex-col p-4 sm:p-6">
 
  <!-- <div class="bg-white p-6 rounded-xl shadow-sm h-full"> -->
-  <h2 class="text-base font-semibold mb-6">Lead Activity Metric</h2>
+  <h2 class="text-base font-semibold mb-4 sm:mb-6">Lead Activity Metric</h2>
       
-      <div class="grid grid-cols-2 gap-2">
-        <div class="bg-white  h-[70px] rounded-md border flex justify-between items-center group cursor-pointer hover:border-blue-500 transition-all">
-          <div class="px-4">
-            <p class="text-xs text-gray-400  font-semibold">Leads to be Contacted Now</p>
-            <h4 class="text-2xl font-bold">{{ contactNowCount }}</h4>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div class="bg-white min-h-[70px] min-w-0 rounded-md border flex justify-between items-center group cursor-pointer hover:border-blue-500 transition-all">
+          <div class="min-w-0 flex-1 px-3 sm:px-4">
+            <p class="break-words text-xs text-gray-400 font-semibold">Leads to be Contacted Now</p>
+            <h4 class="break-words text-2xl font-bold">{{ contactNowCount }}</h4>
           </div>
           <button 
           (click)="openContactNowLeads()"
-               class="bg-gray-100 px-5 h-full flex items-center justify-center hover:bg-gray-200 active:scale-95 transition duration-150">
+               class="bg-gray-100 shrink-0 px-3 sm:px-5 h-full flex items-center justify-center hover:bg-gray-200 active:scale-95 transition duration-150">
                <i class="pi pi-arrow-right text-gray-600"></i>
           </button>
         </div>
 
-        <div class="bg-white h-[70px] rounded-md border flex justify-between items-center group cursor-pointer hover:border-blue-500 transition-all">
-          <div class="px-4">
-            <p class="text-xs text-gray-400  font-semibold">Reactivated Leads</p>
-            <h4 class="text-xl text-black-400 font-bold">{{ reactivatedCount }}</h4>
+        <div class="bg-white min-h-[70px] min-w-0 rounded-md border flex justify-between items-center group cursor-pointer hover:border-blue-500 transition-all">
+          <div class="min-w-0 flex-1 px-3 sm:px-4">
+            <p class="break-words text-xs text-gray-400 font-semibold">Reactivated Leads</p>
+            <h4 class="break-words text-xl text-black-400 font-bold">{{ reactivatedCount }}</h4>
           </div>
           <button
            pRipple
             (click)="openReactivatedLeads()"
-             class="bg-gray-100 px-5 h-full flex items-center justify-center hover:bg-gray-200 active:scale-95 transition duration-150">
+             class="bg-gray-100 shrink-0 px-3 sm:px-5 h-full flex items-center justify-center hover:bg-gray-200 active:scale-95 transition duration-150">
               <i class="pi pi-arrow-right"></i>
           </button>
         </div>
 
-        <div class="bg-white h-[70px] rounded-md border flex justify-between items-center group cursor-pointer hover:border-blue-500 transition-all">
-          <div class="px-4">
-            <p class="text-xs text-gray-400  font-semibold">Cost of acquiring customers</p>
-            <h4 class="text-xl font-bold">145</h4>
+        <div class="bg-white min-h-[70px] min-w-0 rounded-md border flex justify-between items-center group cursor-pointer hover:border-blue-500 transition-all">
+          <div class="min-w-0 flex-1 px-3 sm:px-4">
+            <p class="break-words text-xs text-gray-400 font-semibold">Cost of acquiring customers</p>
+            <h4 class="break-words text-xl font-bold">145</h4>
           </div>
           <button
            pRipple
-             class="bg-gray-100 px-5 h-full flex items-center justify-center hover:bg-gray-200 active:scale-95 transition duration-150">
+             class="bg-gray-100 shrink-0 px-3 sm:px-5 h-full flex items-center justify-center hover:bg-gray-200 active:scale-95 transition duration-150">
               <i class="pi pi-arrow-right"></i>
           </button>
         </div>
         
-        <div class="bg-white h-[70px] rounded-md border flex justify-between items-center group cursor-pointer hover:border-blue-500 transition-all">
-          <div class="px-4">
-            <p class="text-xs text-gray-400  font-semibold">Best source of conversion</p>
-            <h4 class="text-xl font-bold">{{ sourceCount }}</h4>
+        <div class="bg-white min-h-[70px] min-w-0 rounded-md border flex justify-between items-center group cursor-pointer hover:border-blue-500 transition-all">
+          <div class="min-w-0 flex-1 px-3 sm:px-4">
+            <p class="break-words text-xs text-gray-400 font-semibold">Best source of conversion</p>
+            <h4 class="break-words text-xl font-bold">{{ sourceCount }}</h4>
           </div>
           <button
            pRipple
-             class="bg-gray-100 px-5 h-full flex items-center justify-center hover:bg-gray-200 active:scale-95 transition duration-150">
+             class="bg-gray-100 shrink-0 px-3 sm:px-5 h-full flex items-center justify-center hover:bg-gray-200 active:scale-95 transition duration-150">
               <i class="pi pi-arrow-right"></i>
           </button>
         </div>
@@ -125,24 +125,24 @@
 
           <!-- ====Adds overview==== -->
            
-         <h2 class="py-4 text-base font-semibold ">Daily Ad Spend Overview</h2>
+         <h2 class="py-4 text-base font-semibold">Daily Ad Spend Overview</h2>
       
-        <div class="grid grid-cols-3 gap-2">
-          <div class=" bg-white h-[70px] p-2 rounded-md border px-4">
-           <p class="text-xs text-gray-400  font-semibold">Total Spent Today</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          <div class="bg-white min-h-[70px] min-w-0 p-2 rounded-md border px-4">
+           <p class="break-words text-xs text-gray-400 font-semibold">Total Spent Today</p>
             <p class="text-2xl font-bold">145</p>
           </div>
-          <div class="bg-white h-[70px] p-2 rounded-md border">
-            <p class="text-xs text-gray-400  font-semibold">Daily Spend</p>
+          <div class="bg-white min-h-[70px] min-w-0 p-2 rounded-md border">
+            <p class="break-words text-xs text-gray-400 font-semibold">Daily Spend</p>
             <p class="text-2xl font-bold">145</p>
           </div>
 
           
-        <div class="bg-white h-[70px] p-2 rounded-md border border-gray-300 ">
+        <div class="bg-white min-h-[70px] min-w-0 p-2 rounded-md border border-gray-300">
 
-       <div class="flex items-center justify-center gap-2">
+       <div class="flex flex-wrap items-center justify-center gap-2">
 
-        <p class="text-xs text-gray-400 font-semibold">
+        <p class="break-words text-xs text-gray-400 font-semibold">
           Best Source
         </p>
 

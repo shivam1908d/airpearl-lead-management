@@ -1,12 +1,12 @@
 <!-- ===== Lead Table Ui ===== -->
-<div class="bg-white p-6 rounded-xl shadow-sm">
+<div class="w-full min-w-0 bg-white p-3 sm:p-6 rounded-xl shadow-sm">
   <!-- ===== Lead Table Ui ===== -->
 
   <!-- Top Filters -->
-  <div class="mt-4 bg-white rounded-xl  border-gray-100 shadow-sm overflow-hidden">
+  <div class="mt-4 min-w-0 bg-white rounded-xl border-gray-100 shadow-sm overflow-hidden">
   
-  <div class="p-4 flex flex-wrap items-center justify-between gap-4 border-b border-gray-50">
-    <div class="flex items-center gap-2">
+  <div class="p-3 sm:p-4 flex flex-wrap items-center justify-between gap-4 border-b border-gray-50">
+    <div class="flex flex-wrap items-center gap-2 min-w-0">
         <i class="pi pi-filter text-gray-500 text-sm"></i>
 
       <!--Source Dropdown -->
@@ -55,13 +55,13 @@
        </div>
      </div>
 
-    <div class="flex items-center gap-3">
-      <div class="relative">
+    <div class="flex w-full sm:w-auto flex-wrap items-center gap-3">
+      <div class="relative w-full sm:w-auto">
         <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
         <input type="text" placeholder="Search Leads" 
-               class="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-xs w-64 focus:outline-none focus:border-blue-400">
+               class="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-blue-400">
       </div>
-      <button class="bg-[#2D60FF] text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2">
+      <button class="bg-[#2D60FF] text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 whitespace-nowrap">
         <i class="pi pi-upload"></i> Export
       </button>
     </div>
@@ -70,7 +70,7 @@
   <!-- Table -->
   <p-table
     [value]="filteredLeads"
-    responsiveLayout="scroll"
+    responsiveLayout="stack"
     class="p-datatable-sm">
     <ng-template pTemplate="header">
       <tr class="bg-gray-200">
@@ -86,16 +86,27 @@
     <ng-template pTemplate="body" let-lead>
       <tr class="hover:bg-gray-50 transition border-b border-gray-200">
         <td class="text-blue-600 font-medium cursor-pointer">
+          <span class="p-column-title">Lead ID</span>
           {{ lead.id }}
         </td>
 
-        <td>{{ lead.name }}</td>
-
-        <td>{{ lead.phone }}</td>
-
-        <td>{{ lead.email }}</td>
+        <td>
+          <span class="p-column-title">Lead Name</span>
+          {{ lead.name }}
+        </td>
 
         <td>
+          <span class="p-column-title">Phone Number</span>
+          {{ lead.phone }}
+        </td>
+
+        <td class="break-all sm:break-normal">
+          <span class="p-column-title">Email ID</span>
+          {{ lead.email }}
+        </td>
+
+        <td>
+          <span class="p-column-title">Status</span>
           <span
             class="px-3 py-1 rounded-full text-xs font-semibold"
             [ngClass]="getStatusClass(lead.status)">
@@ -103,7 +114,10 @@
           </span>
         </td>
 
-        <td>{{ lead.contactedDate }}</td>
+        <td>
+          <span class="p-column-title">Contacted Date</span>
+          {{ lead.contactedDate }}
+        </td>
       </tr>
     </ng-template>
 
