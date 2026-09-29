@@ -1,21 +1,21 @@
-<div class="flex w-full items-center justify-between px-6 py-2">
-  <div class="flex items-center gap-2">
+<div class="flex w-full flex-col gap-3 px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+  <div class="flex flex-wrap items-center gap-2">
     @for (tab of tabs; track tab) {
       <button
         (click)="activeTab = tab"
         [ngClass]="activeTab === tab ? 'border-blue-600 text-blue-600 font-bold' : 'border-transparent text-slate-500 hover:text-slate-700'"
-        class="border-b-2 pb-3 text-sm font-semibold tracking-[0.01em] transition-all duration-200">
+        class="border-b-2 pb-2 text-xs font-semibold tracking-[0.01em] transition-all duration-200 sm:pb-3 sm:text-sm">
         {{ tab }}
       </button>
     }
   </div>
 
-  <div class="mb-2 flex rounded-xl bg-slate-100 p-1 shadow-inner">
+  <div class="mb-0 flex flex-wrap items-center rounded-xl bg-slate-100 p-1 shadow-inner sm:mb-2">
     @for (filter of filters; track filter) {
       <button
         (click)="activeFilter = filter"
         [ngClass]="activeFilter === filter ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-700'"
-        class="rounded-lg px-4 py-1.5 text-[11px] font-medium tracking-[0.02em] transition-all duration-200">
+        class="rounded-lg px-3 py-1.5 text-[10px] font-medium tracking-[0.02em] transition-all duration-200 sm:px-4 sm:text-[11px]">
         {{ filter }}
       </button>
     }
