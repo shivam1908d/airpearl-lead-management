@@ -1,1 +1,293 @@
-<p>fdtl works!</p>
+<main class="fdtl-page">
+	<header class="page-header">
+		<div class="page-heading">
+			<div class="title-row">
+				<div>
+					<h1>FDTL Compliance</h1>
+					<p>Monitor crew duty time, flight time, rest periods, and compliance status.</p>
+				</div>
+				<span class="demo-pill"><i class="pi pi-info-circle" aria-hidden="true"></i> Demo mode</span>
+			</div>
+		</div>
+
+		<div class="header-actions">
+			<label class="date-filter">
+				<span>Date range</span>
+				<select [(ngModel)]="selectedDateRange" (ngModelChange)="onFiltersChanged()" aria-label="Filter by date range">
+					<option>Today</option>
+					<option>This Week</option>
+					<option>Custom Date</option>
+				</select>
+			</label>
+			@if (selectedDateRange === 'Custom Date') {
+				<label class="custom-date-filter">
+					<span class="visually-hidden">Choose custom date</span>
+					<input type="date" [(ngModel)]="customDate" (ngModelChange)="onFiltersChanged()" aria-label="Choose custom date">
+				</label>
+			}
+			<button class="button button-secondary" type="button" (click)="refreshData()" [disabled]="isLoading" aria-label="Refresh FDTL data">
+				<i class="pi pi-refresh" aria-hidden="true"></i><span>Refresh</span>
+			</button>
+			<button class="button button-secondary" type="button" (click)="exportReport()">
+				<i class="pi pi-download" aria-hidden="true"></i><span>Export Report</span>
+			</button>
+			<button class="button button-primary" type="button" (click)="openSettings()">
+				<i class="pi pi-sliders-h" aria-hidden="true"></i><span>FDTL Settings</span>
+			</button>
+		</div>
+	</header>
+
+	<section class="summary-grid" aria-label="FDTL summary">
+		@if (isLoading) {
+			@for (placeholder of [1, 2, 3, 4, 5]; track placeholder) {
+				<div class="summary-skeleton" aria-hidden="true"><span></span><span></span><span></span></div>
+			}
+		} @else {
+			@for (card of summaryCards; track card.label) {
+				<article class="summary-card" [ngClass]="'tone-' + card.tone">
+					<div class="summary-topline">
+						<span class="summary-icon"><i [class]="card.icon" aria-hidden="true"></i></span>
+						<span class="summary-indicator"><span class="indicator-dot"></span>{{ card.tone === 'good' ? 'On track' : card.tone === 'warning' ? 'Monitor' : card.tone === 'danger' ? 'Action' : card.tone === 'info' ? 'Scheduled' : 'Live' }}</span>
+					</div>
+					<p class="summary-label">{{ card.label }}</p>
+					<div class="summary-value">{{ card.value }}</div>
+					<p class="summary-description">{{ card.description }}</p>
+				</article>
+			}
+		}
+	</section>
+
+	<section class="system-status" aria-labelledby="system-status-title">
+		<div class="system-copy">
+			<div class="system-title-row">
+				<span class="system-icon"><i class="pi pi-shield" aria-hidden="true"></i></span>
+				<div>
+					<h2 id="system-status-title">FDTL System Status</h2>
+					<p><span class="active-dot"></span><strong>Active</strong><span class="meta-separator">·</span>Standard Crew Duty Policy</p>
+				</div>
+			</div>
+			<div class="checked-at"><i class="pi pi-clock" aria-hidden="true"></i> Last checked {{ lastCheckedLabel }}</div>
+		</div>
+		<div class="system-actions">
+			<button class="button button-secondary" type="button" (click)="viewPolicy()">
+				<i class="pi pi-file" aria-hidden="true"></i><span>View Policy</span>
+			</button>
+			<button class="button button-primary" type="button" (click)="runComplianceCheck()" [disabled]="isCheckingCompliance">
+				@if (isCheckingCompliance) { <i class="pi pi-spin pi-spinner" aria-hidden="true"></i><span>Checking...</span> }
+				@else { <i class="pi pi-play" aria-hidden="true"></i><span>Run Compliance Check</span> }
+			</button>
+		</div>
+		<p class="demo-note"><i class="pi pi-info-circle" aria-hidden="true"></i><span>Demo mode — calculations are based on mock data and are for interface demonstration only. This dashboard does not establish legal or regulatory compliance.</span></p>
+	</section>
+
+	<section class="content-panel crew-panel" aria-labelledby="crew-heading">
+		<div class="section-heading crew-heading">
+			<div>
+				<h2 id="crew-heading">Crew Compliance</h2>
+				<p>Review current usage and rest status for monitored crew.</p>
+			</div>
+			<span class="record-count">{{ filteredCrewMembers.length }} crew members</span>
+		</div>
+
+		<div class="filter-toolbar">
+			<label class="search-field">
+				<i class="pi pi-search" aria-hidden="true"></i>
+				<span class="visually-hidden">Search by crew member or employee ID</span>
+				<input type="search" [(ngModel)]="searchTerm" (ngModelChange)="onFiltersChanged()" placeholder="Search crew or employee ID" aria-label="Search by crew member or employee ID">
+			</label>
+			<label class="select-filter"><span>Status</span>
+				<select [(ngModel)]="selectedStatus" (ngModelChange)="onFiltersChanged()" aria-label="Filter by status">
+					<option>All</option>
+					@for (status of statusOptions; track status) { <option [value]="status">{{ status }}</option> }
+				</select>
+			</label>
+			<label class="select-filter"><span>Role</span>
+				<select [(ngModel)]="selectedRole" (ngModelChange)="onFiltersChanged()" aria-label="Filter by role">
+					<option>All</option>
+					@for (role of roleOptions; track role) { <option [value]="role">{{ role }}</option> }
+				</select>
+			</label>
+			<label class="select-filter"><span>Base</span>
+				<select [(ngModel)]="selectedBase" (ngModelChange)="onFiltersChanged()" aria-label="Filter by base">
+					<option>All</option>
+					@for (base of baseOptions; track base) { <option [value]="base">{{ base }}</option> }
+				</select>
+			</label>
+		</div>
+
+		@if (hasError) {
+			<div class="state-message error-state" role="alert">
+				<span class="state-icon"><i class="pi pi-exclamation-circle" aria-hidden="true"></i></span>
+				<h3>Unable to load FDTL data.</h3>
+				<button class="button button-secondary" type="button" (click)="retryLoad()"><i class="pi pi-refresh" aria-hidden="true"></i> Retry</button>
+			</div>
+		} @else if (isLoading) {
+			<div class="table-scroll" aria-label="Loading crew records">
+				<table class="data-table">
+					<thead><tr><th>Crew Member</th><th>Employee ID</th><th>Role</th><th>Next Duty</th><th>Duty Hours Used / Limit</th><th>Flight Hours Used / Limit</th><th>Rest Remaining</th><th>Status</th><th>Action</th></tr></thead>
+					<tbody>
+						@for (placeholder of [1, 2, 3, 4, 5]; track placeholder) {
+							<tr class="skeleton-row" aria-hidden="true">@for (cell of [1, 2, 3, 4, 5, 6, 7, 8, 9]; track cell) { <td><span></span></td> }</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		} @else if (filteredCrewMembers.length === 0) {
+			<div class="state-message empty-state">
+				<span class="state-icon"><i class="pi pi-users" aria-hidden="true"></i></span>
+				<h3>No crew members found</h3>
+				<p>Try changing your search or filters.</p>
+				<button class="button button-secondary" type="button" (click)="resetFilters()">Reset Filters</button>
+			</div>
+		} @else {
+			<div class="table-scroll">
+				<table class="data-table crew-table">
+					<thead><tr>
+						<th scope="col" [attr.aria-sort]="sortAriaValue('name')"><button class="sort-button" type="button" (click)="sortBy('name')">Crew Member <i class="pi pi-sort-alt" aria-hidden="true"></i></button></th>
+						<th scope="col">Employee ID</th><th scope="col">Role</th>
+						<th scope="col" [attr.aria-sort]="sortAriaValue('nextDuty')"><button class="sort-button" type="button" (click)="sortBy('nextDuty')">Next Duty <i class="pi pi-sort-alt" aria-hidden="true"></i></button></th>
+						<th scope="col" [attr.aria-sort]="sortAriaValue('dutyUtilization')"><button class="sort-button" type="button" (click)="sortBy('dutyUtilization')">Duty Hours Used / Limit <i class="pi pi-sort-alt" aria-hidden="true"></i></button></th>
+						<th scope="col" [attr.aria-sort]="sortAriaValue('flightUtilization')"><button class="sort-button" type="button" (click)="sortBy('flightUtilization')">Flight Hours Used / Limit <i class="pi pi-sort-alt" aria-hidden="true"></i></button></th>
+						<th scope="col" [attr.aria-sort]="sortAriaValue('rest')"><button class="sort-button" type="button" (click)="sortBy('rest')">Rest Remaining <i class="pi pi-sort-alt" aria-hidden="true"></i></button></th>
+						<th scope="col" [attr.aria-sort]="sortAriaValue('status')"><button class="sort-button" type="button" (click)="sortBy('status')">Status <i class="pi pi-sort-alt" aria-hidden="true"></i></button></th>
+						<th scope="col"><span class="visually-hidden">Actions</span></th>
+					</tr></thead>
+					<tbody>
+						@for (crew of visibleCrewMembers; track crew.id) {
+							<tr>
+								<td><div class="crew-name-cell"><span class="avatar" aria-hidden="true">{{ crew.name.charAt(0) }}</span><span class="crew-name">{{ crew.name }}</span></div></td>
+								<td class="muted-cell">{{ crew.employeeId }}</td>
+								<td>{{ crew.role }}</td>
+								<td>{{ formatDateTime(crew.nextDuty) }}</td>
+								<td><span class="usage-value">{{ formatUsage(crew.dutyUsage) }}</span>@if (crew.dutyUsage) { <span class="mini-progress"><span [ngClass]="usageClass(crew.dutyUsage)" [style.width.%]="usagePercent(crew.dutyUsage)"></span></span> }</td>
+								<td><span class="usage-value">{{ formatUsage(crew.flightUsage) }}</span>@if (crew.flightUsage) { <span class="mini-progress"><span [ngClass]="usageClass(crew.flightUsage)" [style.width.%]="usagePercent(crew.flightUsage)"></span></span> }</td>
+								<td>{{ formatHours(crew.restRemainingHours) }}</td>
+								<td><span class="status-badge" [ngClass]="statusClass(crew.status)"><i [class]="statusIcon(crew.status)" aria-hidden="true"></i>{{ crew.status }}</span></td>
+								<td><div class="row-actions">
+									<button class="view-button" type="button" (click)="openCrewDetails(crew)" [attr.aria-label]="'View details for ' + crew.name">View</button>
+									<div class="menu-wrap">
+										<button class="icon-button" type="button" (click)="toggleMenu(crew.id)" [attr.aria-expanded]="activeMenuId === crew.id" [attr.aria-label]="'More actions for ' + crew.name"><i class="pi pi-ellipsis-h" aria-hidden="true"></i></button>
+										@if (activeMenuId === crew.id) {
+											<div class="action-menu" role="menu">
+												<button type="button" role="menuitem" (click)="openCrewDetails(crew)"><i class="pi pi-eye" aria-hidden="true"></i> View details</button>
+												<button type="button" role="menuitem" (click)="downloadCrewReport(crew)"><i class="pi pi-download" aria-hidden="true"></i> Download report</button>
+											</div>
+										}
+									</div>
+								</div></td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			<div class="pagination-bar">
+				<span>Showing {{ pageStart }}–{{ pageEnd }} of {{ filteredCrewMembers.length }}</span>
+				<div class="pagination-controls" aria-label="Crew table pagination">
+					<button class="icon-button" type="button" (click)="changePage(currentPage - 1)" [disabled]="currentPage === 1" aria-label="Previous page"><i class="pi pi-chevron-left" aria-hidden="true"></i></button>
+					<span class="page-count">Page {{ currentPage }} of {{ totalPages }}</span>
+					<button class="icon-button" type="button" (click)="changePage(currentPage + 1)" [disabled]="currentPage === totalPages" aria-label="Next page"><i class="pi pi-chevron-right" aria-hidden="true"></i></button>
+				</div>
+			</div>
+		}
+	</section>
+
+	<div class="support-grid">
+		<section class="content-panel upcoming-panel" aria-labelledby="upcoming-heading">
+			<div class="section-heading">
+				<div><h2 id="upcoming-heading">Upcoming Duties</h2><p>Scheduled crew duties and demo FDTL results.</p></div>
+				<span class="record-count">{{ upcomingDuties.length }} scheduled</span>
+			</div>
+			<div class="table-scroll">
+				<table class="data-table upcoming-table">
+					<thead><tr><th scope="col">Duty ID</th><th scope="col">Crew Member</th><th scope="col">Report Time</th><th scope="col">Release Time</th><th scope="col">Sectors</th><th scope="col">Required Rest</th><th scope="col">FDTL Result</th><th scope="col">Review</th></tr></thead>
+					<tbody>
+						@for (duty of upcomingDuties; track duty.dutyId) {
+							<tr>
+								<td class="strong-cell">{{ duty.dutyId }}</td><td>{{ crewName(duty.crewId) }}</td>
+								<td>{{ formatDateTime(duty.reportTime) }}</td><td>{{ formatDateTime(duty.releaseTime) }}</td>
+								<td>{{ duty.sectors }}</td><td>{{ duty.requiredRestHours }}h</td>
+								<td><span class="status-badge" [ngClass]="statusClass(duty.result)"><i [class]="statusIcon(duty.result)" aria-hidden="true"></i>{{ duty.result }}</span></td>
+								<td><button class="text-button" type="button" (click)="reviewDuty(duty)">Review</button></td>
+							</tr>
+						} @empty {
+							<tr><td colspan="8" class="table-empty">No upcoming duties in the demo dataset.</td></tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		</section>
+
+		<section class="content-panel alerts-panel" aria-labelledby="alerts-heading">
+			<div class="section-heading">
+				<div><h2 id="alerts-heading">FDTL Alerts</h2><p>Items requiring crew review.</p></div>
+				<span class="record-count">{{ alerts.length }} alerts</span>
+			</div>
+			@if (isLoading) {
+				<div class="alert-skeletons" aria-label="Loading alerts">@for (placeholder of [1, 2, 3]; track placeholder) { <div class="alert-skeleton" aria-hidden="true"><span></span><span></span></div> }</div>
+			} @else {
+				<ul class="alert-list">
+					@for (alert of alerts; track alert.id) {
+						<li class="alert-item" [class.alert-reviewed]="reviewedAlertIds.has(alert.id)">
+							<span class="alert-icon" [ngClass]="severityClass(alert.severity)" aria-hidden="true"><i [class]="alert.severity === 'Violation' ? 'pi pi-times-circle' : alert.severity === 'Warning' ? 'pi pi-exclamation-triangle' : 'pi pi-info-circle'"></i></span>
+							<div class="alert-content"><div class="alert-message-row"><span class="alert-severity">{{ alert.severity }}</span>@if (reviewedAlertIds.has(alert.id)) { <span class="reviewed-label">Reviewed</span> }</div><p>{{ alert.message }}</p><time [attr.datetime]="alert.timestamp">{{ formatDateTime(alert.timestamp) }}</time></div>
+							<button class="text-button alert-review" type="button" (click)="markAlertReviewed(alert)" [disabled]="reviewedAlertIds.has(alert.id)">{{ reviewedAlertIds.has(alert.id) ? 'Done' : 'Review' }}</button>
+						</li>
+					} @empty {
+						<li class="table-empty">No active alerts.</li>
+					}
+				</ul>
+			}
+		</section>
+	</div>
+
+	@if (selectedCrew; as crew) {
+		<div class="drawer-layer">
+			<button class="drawer-backdrop" type="button" (click)="closeCrewDetails()" aria-label="Close crew details"></button>
+			<aside class="crew-drawer" role="dialog" aria-modal="true" [attr.aria-label]="'Crew details: ' + crew.name" tabindex="-1">
+				<div class="drawer-header">
+					<div><span class="drawer-eyebrow">Crew details</span><h2>{{ crew.name }}</h2><p>{{ crew.role }} <span>·</span> {{ crew.employeeId }}</p></div>
+					<button class="icon-button close-button" type="button" (click)="closeCrewDetails()" aria-label="Close crew details"><i class="pi pi-times" aria-hidden="true"></i></button>
+				</div>
+				<div class="drawer-body">
+					<div class="drawer-status-row"><span>Current status</span><span class="status-badge" [ngClass]="statusClass(crew.status)"><i [class]="statusIcon(crew.status)" aria-hidden="true"></i>{{ crew.status }}</span></div>
+
+					<section class="detail-section">
+						<h3>Crew Information</h3>
+						<dl class="detail-grid"><div><dt>Crew Name</dt><dd>{{ crew.name }}</dd></div><div><dt>Role</dt><dd>{{ crew.role }}</dd></div><div><dt>Employee ID</dt><dd>{{ crew.employeeId }}</dd></div><div><dt>Base</dt><dd>{{ crew.base }}</dd></div></dl>
+					</section>
+
+					<section class="detail-section">
+						<h3>Current Duty</h3>
+						@if (crew.currentDuty; as currentDuty) {
+							<dl class="detail-grid"><div><dt>Duty start / report</dt><dd>{{ formatDateTime(currentDuty.reportTime) }}</dd></div><div><dt>Duty end / release</dt><dd>{{ formatDateTime(currentDuty.releaseTime) }}</dd></div><div><dt>Sectors</dt><dd>{{ currentDuty.sectors }}</dd></div><div><dt>Duty hours used / limit</dt><dd>{{ currentDuty.dutyHoursUsed }}h / {{ currentDuty.dutyHoursLimit }}h</dd></div></dl>
+						} @else { <p class="no-data-note">No current duty data is available.</p> }
+					</section>
+
+					<section class="detail-section">
+						<h3>Previous Duty &amp; Rest</h3>
+						@if (crew.previousDuty; as previousDuty) {
+							  <dl class="detail-grid"><div><dt>Previous duty</dt><dd>{{ previousDuty.dutyId }} · {{ formatDateTime(previousDuty.reportTime) }}</dd></div><div><dt>Previous release</dt><dd>{{ formatDateTime(previousDuty.releaseTime) }}</dd></div><div><dt>Rest received</dt><dd>{{ formatHours(crew.restReceivedHours) }}</dd></div><div><dt>Rest remaining</dt><dd>{{ formatHours(crew.restRemainingHours) }}</dd></div></dl>
+						} @else { <p class="no-data-note">No previous duty or rest data is available.</p> }
+					</section>
+
+					<section class="detail-section utilization-section">
+						<h3>Utilization</h3>
+						<div class="utilization-item"><div><span>Daily Flight Time</span><strong>{{ formatUsage(crew.utilization.dailyFlightTime) }}</strong></div><div class="progress-track"><span [ngClass]="usageClass(crew.utilization.dailyFlightTime)" [style.width.%]="usagePercent(crew.utilization.dailyFlightTime)"></span></div></div>
+						<div class="utilization-item"><div><span>7-Day Flight Time</span><strong>{{ formatUsage(crew.utilization.sevenDayFlightTime) }}</strong></div><div class="progress-track"><span [ngClass]="usageClass(crew.utilization.sevenDayFlightTime)" [style.width.%]="usagePercent(crew.utilization.sevenDayFlightTime)"></span></div></div>
+						<div class="utilization-item"><div><span>28-Day Flight Time</span><strong>{{ formatUsage(crew.utilization.twentyEightDayFlightTime) }}</strong></div><div class="progress-track"><span [ngClass]="usageClass(crew.utilization.twentyEightDayFlightTime)" [style.width.%]="usagePercent(crew.utilization.twentyEightDayFlightTime)"></span></div></div>
+						<div class="utilization-item"><div><span>Duty Time</span><strong>{{ formatUsage(crew.utilization.dutyTime) }}</strong></div><div class="progress-track"><span [ngClass]="usageClass(crew.utilization.dutyTime)" [style.width.%]="usagePercent(crew.utilization.dutyTime)"></span></div></div>
+					</section>
+				</div>
+				<div class="drawer-footer">
+					<button class="button button-secondary" type="button" (click)="viewFullHistory(crew)">View Full History</button>
+					<button class="button button-secondary" type="button" (click)="downloadCrewReport(crew)"><i class="pi pi-download" aria-hidden="true"></i><span>Download Report</span></button>
+					<button class="button button-primary" type="button" (click)="closeCrewDetails()">Close</button>
+				</div>
+			</aside>
+		</div>
+	}
+
+	@if (toastMessage) {
+		<div class="toast-message" role="status" aria-live="polite"><i class="pi pi-check-circle" aria-hidden="true"></i>{{ toastMessage }}</div>
+	}
+</main>
