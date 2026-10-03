@@ -64,7 +64,7 @@ export class LoginComponent implements OnDestroy {
         this.flight = 'takeoff';
         // let the plane fly away before opening the app
         this.later(() => {
-          const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/dashboards/roaster';
+          const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/dashboards/roster';
           this.router.navigateByUrl(returnUrl);
         }, 1100);
       },
