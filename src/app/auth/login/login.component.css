@@ -1,0 +1,157 @@
+/* ---------- scene sizes (mobile first) ---------- */
+.sky {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  --plane: 52px;   /* plane size */
+  --dx: 150px;     /* takeoff / enter distance */
+  --dy: 90px;
+  --cx: 44px;      /* crash landing spot (offset from plane start) */
+  --cy: 40px;
+}
+@media (min-width: 640px) {
+  .sky { --plane: 60px; --dx: 220px; --dy: 110px; --cx: 60px; --cy: 52px; }
+}
+@media (min-width: 1024px) {
+  .sky { --plane: 88px; --dx: 320px; --dy: 230px; --cx: 120px; --cy: 125px; }
+}
+
+/* ---------- clouds ---------- */
+.cloud { position: absolute; left: 0; width: 100%; height: 30px; animation: drift linear infinite; }
+.cloud i {
+  position: absolute; left: 0; top: 0;
+  width: 90px; height: 24px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+}
+.cloud i::before {
+  content: ''; position: absolute; left: 18px; top: -12px;
+  width: 38px; height: 28px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+}
+.c1 { top: 16%; animation-duration: 22s; animation-delay: -6s; }
+.c2 { top: 62%; animation-duration: 32s; animation-delay: -18s; }
+.c2 i { transform: scale(0.75); }
+.c3 { top: 38%; animation-duration: 40s; animation-delay: -28s; }
+.c3 i { transform: scale(0.55); }
+
+@keyframes drift {
+  from { transform: translateX(105%); }
+  to   { transform: translateX(-105%); }
+}
+
+/* ---------- plane ---------- */
+.plane-pos {
+  position: absolute; left: 50%; top: 42%;
+  width: var(--plane); height: var(--plane);
+  margin: calc(var(--plane) / -2) 0 0 calc(var(--plane) / -2);
+  animation: enter 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.plane-bob { width: 100%; height: 100%; animation: bob 3s ease-in-out infinite; color: #fff; filter: drop-shadow(0 6px 6px rgba(0, 0, 0, 0.25)); }
+.plane-svg { display: block; width: 100%; height: 100%; transform: rotate(90deg); }
+
+.trail {
+  position: absolute; right: 90%; top: 50%;
+  height: 3px; width: calc(var(--plane) * 1.6);
+  transform: translateY(-50%);
+  border-radius: 3px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.75));
+  transition: width 0.4s ease, opacity 0.3s ease;
+}
+
+@keyframes bob {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50%      { transform: translateY(-10px) rotate(2deg); }
+}
+@keyframes enter {
+  from { transform: translateX(calc(var(--dx) * -1)); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+
+/* ---------- loading: plane speeds up ---------- */
+.is-loading .plane-bob { animation-duration: 0.6s; }
+.is-loading .trail { width: calc(var(--plane) * 2.6); }
+.is-loading .cloud { animation-duration: 6s; }
+
+/* ---------- success: takeoff ---------- */
+.is-takeoff .plane-pos { animation: takeoff 1.1s ease-in forwards; }
+.is-takeoff .trail { width: calc(var(--plane) * 3.2); }
+@keyframes takeoff {
+  0%   { transform: translate(0, 0) rotate(0); opacity: 1; }
+  25%  { transform: translate(calc(var(--dx) * 0.05), 0) rotate(0); }
+  100% { transform: translate(var(--dx), calc(var(--dy) * -1)) rotate(-28deg); opacity: 0; }
+}
+
+/* ---------- error: crash ---------- */
+.is-crash .plane-pos { animation: crash 1.1s ease-in forwards; }
+.is-crash .plane-bob { animation: none; }
+.is-crash .trail { opacity: 0; }
+@keyframes crash {
+  0%   { transform: translate(0, 0) rotate(0); opacity: 1; }
+  15%  { transform: translate(calc(var(--cx) * 0.1), calc(var(--cy) * -0.2)) rotate(-8deg); }
+  85%  { transform: translate(var(--cx), var(--cy)) rotate(70deg); opacity: 1; }
+  100% { transform: translate(var(--cx), var(--cy)) rotate(78deg); opacity: 0; }
+}
+
+.boom, .smoke {
+  position: absolute; left: 50%; top: 42%; opacity: 0; pointer-events: none; border-radius: 50%;
+  width: calc(var(--plane) * 1.3); height: calc(var(--plane) * 1.3);
+  margin: calc(var(--plane) * -0.65) 0 0 calc(var(--plane) * -0.65);
+}
+.boom {
+  background: radial-gradient(circle, #fff7ae 0%, #fbbf24 35%, #f97316 62%, rgba(239, 68, 68, 0) 72%);
+  transform: translate(var(--cx), var(--cy)) scale(0);
+}
+.is-crash .boom { animation: boom 0.9s 0.85s ease-out forwards; }
+@keyframes boom {
+  0%   { transform: translate(var(--cx), var(--cy)) scale(0); opacity: 0; }
+  30%  { opacity: 1; }
+  100% { transform: translate(var(--cx), var(--cy)) scale(1.5); opacity: 0; }
+}
+
+.smoke {
+  width: calc(var(--plane) * 0.6); height: calc(var(--plane) * 0.6);
+  margin: calc(var(--plane) * -0.3) 0 0 calc(var(--plane) * -0.3);
+  background: rgba(30, 41, 59, 0.55);
+  --sx: 0px;
+  transform: translate(var(--cx), var(--cy)) scale(0.4);
+}
+.s1 { --sx: -14px; }
+.s2 { --sx: 4px; }
+.s3 { --sx: 18px; }
+.is-crash .s1 { animation: smoke 1.6s 1s ease-out forwards; }
+.is-crash .s2 { animation: smoke 1.8s 1.15s ease-out forwards; }
+.is-crash .s3 { animation: smoke 1.6s 1.3s ease-out forwards; }
+@keyframes smoke {
+  0%   { transform: translate(var(--cx), var(--cy)) scale(0.4); opacity: 0.7; }
+  100% { transform: translate(calc(var(--cx) + var(--sx)), calc(var(--cy) - 55px)) scale(1.7); opacity: 0; }
+}
+
+.sky.is-crash { animation: shake 0.5s 0.85s; }
+
+/* ---------- status pill ---------- */
+.status {
+  position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
+  padding: 4px 14px; border-radius: 999px; white-space: nowrap;
+  font-size: 12px; font-weight: 500; color: #fff;
+  background: rgba(255, 255, 255, 0.18);
+  transition: background 0.3s ease;
+}
+.is-crash .status   { background: rgba(239, 68, 68, 0.92); }
+.is-takeoff .status { background: rgba(34, 197, 94, 0.92); }
+
+/* ---------- form shake ---------- */
+.shake { animation: shake 0.5s 0.85s; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-7px); }
+  40%, 80% { transform: translateX(7px); }
+}
+
+/* ---------- accessibility ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .plane-pos, .plane-bob, .cloud, .boom, .smoke, .shake, .sky { animation: none !important; }
+  .boom, .smoke { display: none; }
+  .is-crash .plane-pos { opacity: 0.35; }
+}

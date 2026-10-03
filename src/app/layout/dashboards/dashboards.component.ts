@@ -19,8 +19,8 @@ export class DashboardsComponent {
 
     this.router.events.subscribe(() => {
 
-      if(this.router.url.includes('roaster')){
-        this.pageTitle = 'Roaster';
+      if(this.router.url.includes('roster')){
+        this.pageTitle = 'roster';
       }
 
       if(this.router.url.includes('fdtl')){
@@ -29,6 +29,10 @@ export class DashboardsComponent {
 
       if(this.router.url.includes('lead-management')){
         this.pageTitle = 'Lead Management';
+      }
+
+      if(this.router.url.includes('executive-dashboard')){  
+        this.pageTitle = 'Executive Dashboard';
       }
 
     });
