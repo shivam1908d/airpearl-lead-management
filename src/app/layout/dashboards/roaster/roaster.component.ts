@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 type RosterRole = 'Trainee' | 'Captain' | 'Instructor' | 'Flight Attendant';
@@ -33,7 +33,7 @@ interface RosterAssignment {
   templateUrl: './roaster.component.html',
   styleUrl: './roaster.component.css'
 })
-export class RoasterComponent {
+export class RoasterComponent implements OnInit, OnDestroy {
   readonly roles: RosterRole[] = ['Trainee', 'Captain', 'Instructor', 'Flight Attendant'];
   readonly dayOptions = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   readonly timeSlots: RosterSlot[] = [
@@ -43,7 +43,10 @@ export class RoasterComponent {
     { key: 'evening', label: 'Evening' }
   ];
 
+  // The UI shows a 5-day schedule, and each day is split into time buckets such as morning, midday, etc.
   rosterDays: RosterDay[] = this.getNextDays(5);
+
+  // This is the initial in-memory roster data. Each assignment is keyed later by a unique slot identifier.
   rosterAssignments: RosterAssignment[] = [
     {
       id: '1',
@@ -66,10 +69,16 @@ export class RoasterComponent {
       endTime: '18:00'
     }
   ];
+  // `assignments` acts like a lookup table: date + slot name => single assignment.
+  // This makes it easy to find, edit, or replace a schedule item without scanning the whole array.
   assignments: Record<string, RosterAssignment> = this.buildAssignmentMap(this.rosterAssignments);
 
   isModalOpen = false;
   selectedSlotKey: string | null = null;
+  // Updated every few seconds so assignments activate and finish without a page refresh.
+  currentTime = new Date();
+
+  private timer?: ReturnType<typeof setInterval>;
 
   form = {
     date: this.getTodayDate(),
@@ -80,6 +89,17 @@ export class RoasterComponent {
     startTime: '08:00',
     endTime: '12:00'
   };
+
+  ngOnInit(): void {
+    // Keep schedule checks in sync with the current local time.
+    this.timer = setInterval(() => {
+      this.currentTime = new Date();
+    }, 5000);
+  }
+
+  ngOnDestroy(): void {
+    clearInterval(this.timer);
+  }
 
   get isFormValid(): boolean {
     return !!this.form.date && !!this.form.personName.trim() && !!this.form.aircraft.trim() && !!this.form.startTime && !!this.form.endTime;
@@ -136,6 +156,8 @@ export class RoasterComponent {
       return;
     }
 
+    // A slot is identified by the date and the time block that the person starts in.
+    // Example: 2026-10-03__morning. Reusing this key ensures one assignment occupies each slot.
     const nextSlotKey = this.getSlotKeyFromTime(this.form.date, this.form.startTime);
     const existingKey = this.selectedSlotKey;
 
@@ -180,6 +202,42 @@ export class RoasterComponent {
     return this.assignments[this.getSlotKey(day.date, slot.key)] || null;
   }
 
+  isAssignmentActive(assignment: RosterAssignment): boolean {
+    // Show the flight indicator only between this assignment's start and end.
+    const { start, end } = this.getAssignmentWindow(assignment);
+    return this.currentTime >= start && this.currentTime < end;
+  }
+
+  assignmentProgress(assignment: RosterAssignment): number {
+    // Convert elapsed schedule time to a percentage for the progress track and airplane.
+    const { start, end } = this.getAssignmentWindow(assignment);
+    const duration = end.getTime() - start.getTime();
+
+    if (duration <= 0) {
+      return 0;
+    }
+
+    const progress = ((this.currentTime.getTime() - start.getTime()) / duration) * 100;
+    return Math.max(0, Math.min(progress, 100));
+  }
+
+  private getAssignmentWindow(assignment: RosterAssignment): { start: Date; end: Date } {
+    // Combine the assignment date with its times; an earlier end time means next-day release.
+    const [startHour, startMinute] = assignment.startTime.split(':').map(Number);
+    const [endHour, endMinute] = assignment.endTime.split(':').map(Number);
+    const start = new Date(`${assignment.date}T00:00:00`);
+    start.setHours(startHour, startMinute, 0, 0);
+    const end = new Date(start);
+    end.setHours(endHour, endMinute, 0, 0);
+
+    if (end <= start) {
+      end.setDate(end.getDate() + 1);
+    }
+
+    return { start, end };
+  }
+
+  // Build a quick lookup map so the component can fetch assignments by date and slot without looping through all rows.
   private buildAssignmentMap(items: RosterAssignment[]): Record<string, RosterAssignment> {
     return items.reduce<Record<string, RosterAssignment>>((map, assignment) => {
       map[assignment.id] = assignment;
@@ -187,6 +245,8 @@ export class RoasterComponent {
     }, {});
   }
 
+  // The roster schedules people in coarse blocks of the day, not by exact minute.
+  // This keeps the UI grid simple while still assigning a flight to the correct time period.
   private getSlotKeyFromTime(date: string, startTime: string): string {
     const startHour = Number(startTime.split(':')[0]);
     const slots = [

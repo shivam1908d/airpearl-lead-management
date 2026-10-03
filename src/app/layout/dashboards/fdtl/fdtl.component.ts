@@ -24,6 +24,8 @@ type SortDirection = 'asc' | 'desc';
   styleUrl: './fdtl.component.css',
 })
 export class FdtlComponent implements OnInit, OnDestroy {
+  // Connected to the “Crew Compliance” filter bar in the HTML (`.filter-toolbar`, `.select-filter`, `[(ngModel)]`).
+  // These option lists define the values shown in the dropdowns so the page stays aligned with the mock FDTL dataset and the filters act on the same status/role/base values.
   readonly statusOptions: FdtlStatus[] = [
     'Compliant', 'Near Limit', 'Violation', 'Rest Required', 'No Data',
   ];
@@ -33,6 +35,8 @@ export class FdtlComponent implements OnInit, OnDestroy {
   readonly upcomingDuties = UPCOMING_DUTIES;
   readonly alerts = FDTL_ALERTS;
 
+  // Connected to the search field, date-range selector, table, and pagination controls in the “Crew Compliance” section (`input[type=search]`, `select`, `.pagination-bar`).
+  // These properties store the current user selections and page state so the table only shows the records and sort order the user has chosen.
   searchTerm = '';
   selectedStatus = 'All';
   selectedRole = 'All';
@@ -56,16 +60,22 @@ export class FdtlComponent implements OnInit, OnDestroy {
   private checkTimer?: ReturnType<typeof setTimeout>;
   private toastTimer?: ReturnType<typeof setTimeout>;
 
+  // Connected to the loading skeletons and loader state used in `.summary-grid`, `.table-scroll`, and `@if (isLoading)` in the template.
+  // This lifecycle hook starts the short demo loading delay when the component first appears, so the skeleton UI is visible before the mock data is displayed.
   ngOnInit(): void {
     this.loadTimer = setTimeout(() => this.isLoading = false, 350);
   }
 
+  // Connected to the same loading and toast lifecycle used by the refresh, check, and notification actions across the page.
+  // This clears any pending timers when the component is destroyed so delayed UI updates do not keep running after the screen is closed.
   ngOnDestroy(): void {
     clearTimeout(this.loadTimer);
     clearTimeout(this.checkTimer);
     clearTimeout(this.toastTimer);
   }
 
+  // Connected to the top summary cards in `.summary-grid` and the `summaryCards` loop in the HTML.
+  // This getter calculates the counts shown in each card from the mock crew list and upcoming-duty list so the summary values stay current with the visible data.
   get summary() {
     const totalCrew = this.crewMembers.length;
     const compliant = this.crewMembers.filter(crew => crew.status === 'Compliant').length;
@@ -76,6 +86,8 @@ export class FdtlComponent implements OnInit, OnDestroy {
     return { totalCrew, compliant, violations, attentionRequired, upcomingDuties: this.upcomingDuties.length };
   }
 
+  // Connected to the `@for (card of summaryCards)` block inside `.summary-grid` and the card label/value/icon bindings in the template.
+  // This getter builds the data objects for each summary panel so the HTML can render the right label, tone, icon, and count without duplicating calculation logic.
   get summaryCards() {
     return [
       { label: 'Total Crew', value: this.summary.totalCrew, description: 'Crew monitored', icon: 'pi pi-users', tone: 'neutral' },
@@ -86,6 +98,8 @@ export class FdtlComponent implements OnInit, OnDestroy {
     ];
   }
 
+  // Connected to the filtered crew count, the crew table rows, and the pagination controls in the “Crew Compliance” panel.
+  // This getter applies the search, status, role, base, date-range, and sort rules before the page renders the rows that match the current filter state.
   get filteredCrewMembers(): CrewMember[] {
     const query = this.searchTerm.trim().toLowerCase();
     return this.crewMembers
@@ -97,15 +111,21 @@ export class FdtlComponent implements OnInit, OnDestroy {
       .sort((left, right) => this.compareCrew(left, right));
   }
 
+  // Connected to the visible rows in the main table and to the page numbers shown in `.pagination-bar`.
+  // This keeps the current page to a fixed slice of the filtered list so the view is smaller and easier to browse.
   get visibleCrewMembers(): CrewMember[] {
     const start = (this.currentPage - 1) * this.pageSize;
     return this.filteredCrewMembers.slice(start, start + this.pageSize);
   }
 
+  // Connected to the text “Page x of y” and the Previous/Next buttons in `.pagination-bar`.
+  // This calculates the available page count so the UI knows how many pages exist and prevents invalid page numbers.
   get totalPages(): number {
     return Math.max(1, Math.ceil(this.filteredCrewMembers.length / this.pageSize));
   }
 
+  // Connected to the page summary in `.pagination-bar` (`Showing {{ pageStart }}–{{ pageEnd }}`).
+  // This returns the first and last row numbers for the current page so the user can see what range of records is on screen.
   get pageStart(): number {
     return this.filteredCrewMembers.length ? (this.currentPage - 1) * this.pageSize + 1 : 0;
   }
@@ -114,15 +134,21 @@ export class FdtlComponent implements OnInit, OnDestroy {
     return Math.min(this.currentPage * this.pageSize, this.filteredCrewMembers.length);
   }
 
+  // Connected to the “Last checked” label in the `.system-status` section.
+  // This formats the timestamp from the last compliance run into a readable date/time string for the page header.
   get lastCheckedLabel(): string {
     return this.lastChecked.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
   }
 
+  // Connected to all filter controls in the HTML (`[(ngModel)]`, `.filter-toolbar`, `.select-filter`).
+  // This resets the page number and closes any open action menu whenever a filter changes, keeping the table state consistent with the new selection.
   onFiltersChanged(): void {
     this.currentPage = 1;
     this.activeMenuId = null;
   }
 
+  // Connected to the “Reset Filters” button in the empty and filter states.
+  // This clears all selection states back to their defaults before re-running the same filter logic used by the table.
   resetFilters(): void {
     this.searchTerm = '';
     this.selectedStatus = 'All';
@@ -131,10 +157,14 @@ export class FdtlComponent implements OnInit, OnDestroy {
     this.onFiltersChanged();
   }
 
+  // Connected to the pagination buttons in `.pagination-controls` and their disabled states.
+  // This keeps the current page inside a valid range so the table never tries to render a page that does not exist.
   changePage(page: number): void {
     this.currentPage = Math.min(Math.max(page, 1), this.totalPages);
   }
 
+  // Connected to the table header sort buttons and `[attr.aria-sort]` values in the crew table.
+  // This toggles the current sort field and direction so the rows can be ordered by name, duty, utilization, rest, or status.
   sortBy(key: SortKey): void {
     if (this.sortKey === key) {
       this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
@@ -144,10 +174,14 @@ export class FdtlComponent implements OnInit, OnDestroy {
     }
   }
 
+  // Connected to the sort buttons in the header cells and the screen-reader labels in the HTML.
+  // This returns the correct accessibility value for the current sorting direction so assistive tech can announce the column state clearly.
   sortAriaValue(key: SortKey): string {
     return this.sortKey !== key ? 'none' : this.sortDirection === 'asc' ? 'ascending' : 'descending';
   }
 
+  // Connected to the Refresh button in `.header-actions` and to the loading state in the summary/table sections.
+  // This starts the loading spinner, clears any old timeout, and then shows the toast message after the mock data is refreshed.
   refreshData(): void {
     this.isLoading = true;
     this.hasError = false;
@@ -158,10 +192,14 @@ export class FdtlComponent implements OnInit, OnDestroy {
     }, 500);
   }
 
+  // Connected to the retry button in the error box (`.state-message.error-state`).
+  // This reuses the same refresh flow so the page can retry the demo load without duplicating logic.
   retryLoad(): void {
     this.refreshData();
   }
 
+  // Connected to the “Run Compliance Check” button in `.system-actions` and the spinner shown while the check is running.
+  // This prevents duplicate checks and updates the last checked time after a short delay so the user sees the demo check complete normally.
   runComplianceCheck(): void {
     if (this.isCheckingCompliance) return;
     this.isCheckingCompliance = true;
@@ -172,6 +210,8 @@ export class FdtlComponent implements OnInit, OnDestroy {
     }, 900);
   }
 
+  // Connected to the Export Report button in `.header-actions` and the report download actions in the crew detail menu.
+  // This converts the filtered crew records into CSV content and triggers a browser download so the user can export the current demo dataset.
   exportReport(): void {
     const rows = [
       ['Crew Member', 'Employee ID', 'Role', 'Base', 'Status', 'Duty Hours', 'Flight Hours', 'Rest Remaining'],
@@ -184,6 +224,8 @@ export class FdtlComponent implements OnInit, OnDestroy {
     this.showToast('FDTL report exported.');
   }
 
+  // Connected to the action buttons in the crew row menu and the drawer opened by `selectedCrew`.
+  // These methods keep the selected crew record, menu state, and download actions in step with what the user has clicked in the table and drawer.
   downloadCrewReport(crew: CrewMember): void {
     this.downloadCsv(`fdtl-${crew.employeeId.toLowerCase()}-report.csv`, [
       ['Crew Member', 'Employee ID', 'Role', 'Base', 'Status'],
@@ -207,6 +249,8 @@ export class FdtlComponent implements OnInit, OnDestroy {
     this.activeMenuId = null;
   }
 
+  // Connected to the system action buttons and the review buttons in the upcoming duties and alert panels.
+  // These methods show short demo toast messages only; they help the UI behave like a real application without changing the mock data behind it.
   viewPolicy(): void {
     this.showToast('Active demo policy: Standard Crew Duty Policy.');
   }
@@ -236,6 +280,8 @@ export class FdtlComponent implements OnInit, OnDestroy {
     this.showToast(`Duty ${duty.dutyId} added to review.`);
   }
 
+  // Connected to the `.status-badge`, `.status-icon`, and `[ngClass]="statusClass(...)"` bindings in the crew table, alerts list, and crew drawer.
+  // These helper methods map each status label to the correct CSS class and icon so the same status text is shown with a consistent green, amber, red, or neutral style.
   statusClass(status: FdtlStatus | FdtlResult): string {
     switch (status) {
       case 'Compliant':
@@ -271,6 +317,8 @@ export class FdtlComponent implements OnInit, OnDestroy {
     return severity === 'Violation' ? 'status-danger' : severity === 'Warning' ? 'status-warning' : 'status-info';
   }
 
+  // Connected to the usage and rest values shown in the crew table and detail drawer (`{{ formatHours(...) }}`, `{{ formatUsage(...) }}`, `.usage-value`, `.mini-progress`).
+  // These formatting helpers turn raw mock numbers into readable values and percentage widths so the page displays consistent time and utilization information.
   formatHours(value: number | null): string {
     return value === null ? '—' : `${value}h`;
   }
@@ -295,12 +343,16 @@ export class FdtlComponent implements OnInit, OnDestroy {
     return new Date(value).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
+  // Connected to the toast notification shown after actions such as refresh, export, review, and compliance checks.
+  // This method stores the active message and clears the previous timeout so the notification stays visible for a short time, then disappears cleanly.
   showToast(message: string): void {
     this.toastMessage = message;
     clearTimeout(this.toastTimer);
     this.toastTimer = setTimeout(() => this.toastMessage = '', 3500);
   }
 
+  // Connected to the sort buttons and the row ordering logic used by the “Crew Compliance” table.
+  // This helper compares two crew records using the current sort column and direction so the table can return the correct order for display.
   private compareCrew(left: CrewMember, right: CrewMember): number {
     let result = 0;
     switch (this.sortKey) {
@@ -322,6 +374,8 @@ export class FdtlComponent implements OnInit, OnDestroy {
     return this.statusOptions.indexOf(status);
   }
 
+  // Connected to the date filter in the page header (`selectedDateRange`, `customDate`, `select` and `input[type=date]`).
+  // This check decides whether a crew member's next duty falls inside the chosen reporting period so the visible table matches the selected date window.
   private matchesDateRange(nextDuty: string | null): boolean {
     if (!nextDuty) return true;
     const dutyDate = new Date(nextDuty);
@@ -337,6 +391,8 @@ export class FdtlComponent implements OnInit, OnDestroy {
     return dutyDate >= startOfWeek && dutyDate < endOfWeek;
   }
 
+  // Connected to the report export actions in the page header and crew detail menu.
+  // These helpers turn the visible data into CSV rows and then create a download so the export matches the current filtered FDTL view.
   private usageCsv(usage: Usage | null): string {
     return usage ? `${usage.used}h / ${usage.limit}h` : 'No data';
   }
