@@ -30,10 +30,10 @@ interface RosterAssignment {
   selector: 'app-roster',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  template: '',
+  templateUrl: './roster.component.html',
   styleUrl: './roster.component.css'
 })
-export class rosterComponent implements OnInit, OnDestroy {
+export class RosterComponent implements OnInit, OnDestroy {
   readonly roles: RosterRole[] = ['Trainee', 'Captain', 'Instructor', 'Flight Attendant'];
   readonly dayOptions = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   readonly timeSlots: RosterSlot[] = [

@@ -20,7 +20,7 @@ export class DashboardsComponent {
     this.router.events.subscribe(() => {
 
       if(this.router.url.includes('roster')){
-        this.pageTitle = 'roster';
+        this.pageTitle = 'Roster';
       }
 
       if(this.router.url.includes('fdtl')){
