@@ -1,27 +1,19 @@
-<!-- <div>
-    <app-header></app-header>
-    <app-dashboard></app-dashboard>
-    <app-lead-dashboard></app-lead-dashboard>
-    <div class="flex-1 p-6 bg-gray-50">
-    <router-outlet></router-outlet>
-</div> -->
+<div class="flex h-[100dvh] overflow-hidden bg-gray-50">
 
-<div class="flex h-screen overflow-hidden bg-gray-50">
+  <!-- Dark backdrop (mobile only): tap to close -->
+  <div class="fixed inset-0 z-[55] bg-gray-900/50 transition-opacity duration-300 md:hidden"
+       [ngClass]="isSidebarOpen ? 'opacity-100' : 'pointer-events-none opacity-0'"
+       (click)="closeSidebar()"
+       aria-hidden="true"></div>
 
-  <!-- Sidebar -->
+  <!-- Sidebar wrapper: full-height drawer on mobile, normal column from md up -->
   <aside
-    class="fixed inset-y-0 left-0 z-40 flex h-screen overflow-hidden border-r border-gray-200 bg-white shadow-lg transition-all duration-300 md:static md:shadow-none"
-    [ngClass]="{
-      'translate-x-0': isSidebarOpen,
-      '-translate-x-full': !isSidebarOpen,
-      'w-64': isSidebarOpen,
-      'w-0': !isSidebarOpen,
-      'md:w-56': isSidebarOpen,
-      'md:w-0': !isSidebarOpen,
-      'md:translate-x-0': isSidebarOpen
-    }"
-  >
-    <app-sidebar></app-sidebar>
+    class="fixed inset-y-0 left-0 z-[60] h-full w-64 max-w-[85vw] shrink-0 overflow-hidden bg-white shadow-xl transition-all duration-300 ease-in-out md:static md:z-auto md:max-w-none md:shadow-none"
+    [ngClass]="isSidebarOpen
+      ? 'translate-x-0 md:w-56 md:border-r md:border-gray-200'
+      : '-translate-x-full md:w-0 md:translate-x-0'"
+    [attr.inert]="isSidebarOpen ? null : ''">
+    <app-sidebar class="block h-full"></app-sidebar>
   </aside>
 
   <!-- Right side -->
@@ -36,7 +28,5 @@
         <router-outlet></router-outlet>
       </div>
     </main>
-
   </div>
-
 </div>

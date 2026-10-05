@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../auth/auth.service';
 
 @Component({
-  selector: 'app-header', // This is the tag name you will use
+  selector: 'app-header', // This is the tag used in the layout template as <app-header>.
   standalone: true,
   imports: [CommonModule],
   templateUrl: './header.component.html',
@@ -26,7 +26,7 @@ export class HeaderComponent {
     return this.auth.user?.email ?? '';
   }
 
-  /** "Shivam D" -> "SD", "Shivam" -> "S" */
+  /** Builds a compact avatar label from the logged-in user name for the header profile chip. */
   get initials(): string {
     return this.userName
       .split(' ')

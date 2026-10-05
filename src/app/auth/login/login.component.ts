@@ -28,7 +28,7 @@ export class LoginComponent implements OnDestroy {
   showPassword = false;
   errorMessage = '';
 
-  /** Drives the plane animation: idle -> loading -> (takeoff | crash) */
+  /** The animated plane moves through the auth flow states so the UI can show loading, success, and failure clearly. */
   flight: FlightState = 'idle';
   private crashText = 'Mayday! Access denied';
   private timers: ReturnType<typeof setTimeout>[] = [];
@@ -62,7 +62,7 @@ export class LoginComponent implements OnDestroy {
     this.auth.login(this.form.getRawValue()).subscribe({
       next: () => {
         this.flight = 'takeoff';
-        // let the plane fly away before opening the app
+        // Let the animation finish before navigating away so the success state reads naturally.
         this.later(() => {
           const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/dashboards/roster';
           this.router.navigateByUrl(returnUrl);
@@ -76,11 +76,11 @@ export class LoginComponent implements OnDestroy {
     });
   }
 
-  /** Plays the crash animation, then a fresh plane flies back in. */
+  /** Replays the failure state after a short reset so the plane animation can run again on repeated attempts. */
   private triggerCrash(text: string): void {
     this.clearTimers();
     this.crashText = text;
-    this.flight = 'idle'; // reset so the animation can replay on repeated errors
+    this.flight = 'idle'; // Reset the state so the same failure animation can replay cleanly.
     this.later(() => {
       this.flight = 'crash';
       this.later(() => { if (this.flight === 'crash') { this.flight = 'idle'; } }, 2800);

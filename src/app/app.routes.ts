@@ -10,12 +10,12 @@ import { ExecutiveDashboardComponent } from './layout/dashboards/executive-dashb
 
 export const routes: Routes = [
 
-  { path: 'login', component: LoginComponent },   // < the login page
+  { path: 'login', component: LoginComponent }, // Public route for the sign-in screen.
 
   {
     path: '',
     component: LayoutComponent,
-    canActivate: [authGuard],                                       // (here we protect the layout and all its children)
+    canActivate: [authGuard], // Protect the app shell and all nested dashboard pages.
     children: [
 
 

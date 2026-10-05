@@ -13,7 +13,7 @@ import { ButtonModule } from 'primeng/button';
   styleUrl: './metric-card.component.css'
 })
 export class MetricCardComponent implements OnInit {
-   //  ---Lead Activity Metrics==> reactivated lead count 
+   // These cards summarize the most recent lead activity and highlight the records that need attention.
   
     reactivatedLeads = LEADS_DATA.filter(lead => lead.status === 'Reactivated'
     );
@@ -28,7 +28,7 @@ export class MetricCardComponent implements OnInit {
     this.displayReactivatedDialog = false;
   }
   
-      //  <----Contact Now Leads---->
+      // The new-lead set is used to surface the highest-priority contacts in the sales queue.
       leads = LEADS_DATA;
       contactNowLeads = this.leads.filter(
         lead => lead.status === 'New Lead'
@@ -43,7 +43,7 @@ export class MetricCardComponent implements OnInit {
         window.open(`tel:${phone}`, '_self');
   }
 
-      // <----Best Source Metric---->
+      // This metric identifies the source that is producing the most leads for the dashboard summary.
     Source: string = '';
     sourceCount: number = 0;
     ngOnInit() {

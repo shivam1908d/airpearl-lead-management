@@ -1,4 +1,4 @@
-<!-- here is header .... -->
+<!-- Header shell with the app title, action buttons, and user profile controls. -->
 <header class="relative z-50 flex h-16 w-full items-center justify-between border-b border-gray-200 bg-white px-4 py-3 sm:px-6">
   
   <div class="flex min-w-0 items-center gap-3">
@@ -17,14 +17,14 @@
       <i class="pi pi-bell text-xl"></i>
     </button>
     
-    <!-- CHANGED: initials come from the logged-in user -->
+    <!-- Use the signed-in user state for the avatar so the header reflects the active account. -->
     <div (click)="toggleProfileMenu()" class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-purple-700 text-sm font-medium text-white sm:h-10 sm:w-10">
       {{ initials }}
     </div>
 
     <div *ngIf="isProfileOpen" class="absolute right-0 top-12 z-50 w-48 rounded-lg border border-gray-200 bg-white py-4 shadow-lg">
       <div class="border-b border-gray-100 px-4 py-2">
-        <!-- CHANGED: name and email come from the logged-in user -->
+        <!-- The profile card reads the logged-in user details instead of hard-coded text. -->
         <p class="truncate text-sm font-semibold text-gray-800">{{ userName }}</p>
         <p class="truncate text-xs text-gray-500">{{ userEmail }}</p>
       </div>

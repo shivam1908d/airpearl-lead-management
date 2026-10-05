@@ -25,7 +25,7 @@ export class FunnelChartComponent implements OnInit {
   leadStages: LeadStage[] = [];
   totalLeads: number = 0;
 
-  // Funnel stages fixed order
+  // Keep the funnel stages in a fixed business order so the visual pipeline stays consistent.
   stageOrder: string[] = [
     'New Lead',
     'Qualified Lead',
@@ -36,7 +36,7 @@ export class FunnelChartComponent implements OnInit {
     'Moved to Base'
   ];
 
-  // Stage colors
+  // Each stage keeps its own color so the funnel can communicate status at a glance.
   stageColors: any = {
     'New Lead': '#80ecfa',
     'Qualified Lead': '#6eecff',
@@ -47,7 +47,7 @@ export class FunnelChartComponent implements OnInit {
     'Moved to Base': '#077ead'
   };
 
-  // On Hold legend
+  // The on-hold metric is tracked separately from the funnel counts so it can be shown as a legend value.
   onHoldCount: number = 0;
   onHoldPercentage: string = '';
 
@@ -55,7 +55,7 @@ export class FunnelChartComponent implements OnInit {
 
     const stageCounts: any = {};
 
-    // On Hold count alag calculate
+    // Count leads kept in the on-hold state separately from the active funnel stages.
     this.onHoldCount = this.leads.filter(
       lead => lead.status === 'On Hold'
     ).length;
@@ -63,7 +63,7 @@ export class FunnelChartComponent implements OnInit {
     this.onHoldPercentage =
       Math.round((this.onHoldCount / this.leads.length) * 100) + '%';
 
-    // Stage count calculate
+    // Only active pipeline stages are counted here; reactivated and on-hold records are excluded from the funnel totals.
     this.leads.forEach((lead) => {
 
       if (lead.status === 'Reactivated' || lead.status === 'On Hold') {
@@ -74,7 +74,7 @@ export class FunnelChartComponent implements OnInit {
 
     });
 
-    // Fixed order ke according funnel stages banana
+    // Build the funnel in the same order as the business pipeline so the chart always reads left-to-right.
     this.leadStages = this.stageOrder.map(stage => ({
       label: stage,
       count: stageCounts[stage] || 0,

@@ -1,8 +1,8 @@
-<!-- ==Right Side>lead activity metrics card ==-->
+<!-- KPI cards summarize lead activity and surface the most urgent follow-up items. -->
  
 <div class="bg-white rounded-xl shadow-sm min-h-[400px] w-full min-w-0 flex flex-col p-4 sm:p-6">
 
- <!-- <div class="bg-white p-6 rounded-xl shadow-sm h-full"> -->
+ <!-- The card layout stays intentionally compact so the dashboard summary remains readable. -->
   <h2 class="text-base font-semibold mb-4 sm:mb-6">Lead Activity Metric</h2>
       
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -55,9 +55,9 @@
           </button>
         </div>
       </div>
-         <!-- Metric cards dailog box -->
+         <!-- Dialogs open details for the lead groups behind each KPI card. -->
 
-          <!-- Reactivated Leads dialog -->
+          <!-- Re-activated leads are shown in a focused list so follow-up priorities are easy to review. -->
           <p-dialog
            header="Reactivated Leads"
           [(visible)]="displayReactivatedDialog"
@@ -85,7 +85,7 @@
           </div>
         </p-dialog>
 
-          <!-- Contact Now Leads dialog -->
+          <!-- New leads are surfaced for direct outreach in the same panel as the metric summary. -->
            <p-dialog
             header="Contact Now Leads"
             [(visible)]="displayContactNowDialog"
@@ -98,7 +98,7 @@
               *ngFor="let lead of contactNowLeads"
                class="p-3 border rounded-lg flex justify-between items-center hover:bg-gray-50">
 
-           <!-- Lead Info -->
+           <!-- This summary block keeps the contact details and action together in one row. -->
             <div>
                  <p class="font-semibold">{{lead.name}}</p>
                  <p class="text-sm text-gray-500">{{lead.email}}</p>
@@ -107,7 +107,7 @@
            <div class="flex items-center gap-3">
 
                 <p class="text-sm">{{lead.phone}}</p>
-      <!-- CALL BUTTON HERE -->
+      <!-- One-click call actions make it easy to follow up immediately from the dashboard. -->
              <button
                pButton
                 pRipple
@@ -123,7 +123,7 @@
       </p-dialog>
 
 
-          <!-- ====Adds overview==== -->
+          <!-- This overview section highlights spend and the channel driving the strongest conversion. -->
            
          <h2 class="py-4 text-base font-semibold">Daily Ad Spend Overview</h2>
       

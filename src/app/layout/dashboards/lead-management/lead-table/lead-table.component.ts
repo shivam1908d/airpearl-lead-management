@@ -21,7 +21,7 @@ export class LeadTableComponent {
    leads: Lead[] = LEADS_DATA;
   filteredLeads: Lead[] = [...LEADS_DATA];
 
-  // Source dropdown options
+  // These options drive the source filter shown above the lead table.
   sources = [
     { label: 'All', value: 'All' },
     { label: 'Website', value: 'Website' },
@@ -30,7 +30,7 @@ export class LeadTableComponent {
   ];
   selectedSource: any = null;
 
-  // Stage dropdown options
+  // The stage list mirrors the pipeline statuses used in the mock lead data.
   stages = [
     { label: 'All', value: 'All' },
     { label: 'New Lead', value: 'New Lead' },
@@ -45,7 +45,7 @@ export class LeadTableComponent {
   ];
   selectedStage: any = null;
   selectedDate: Date | null = null;
-  // filter apply
+  // Apply the selected filters together so the visible table matches the current lead view.
   applyFilters() {
     this.filteredLeads = this.leads.filter((lead) => {
       

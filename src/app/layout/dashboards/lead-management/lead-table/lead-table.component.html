@@ -1,15 +1,15 @@
-<!-- ===== Lead Table Ui ===== -->
+<!-- Lead table view with the filter controls and pipeline data grouped into one section. -->
 <div class="w-full min-w-0 bg-white p-3 sm:p-6 rounded-xl shadow-sm">
-  <!-- ===== Lead Table Ui ===== -->
+  <!-- The filter bar drives the table state without changing the source dataset. -->
 
-  <!-- Top Filters -->
+  <!-- Filter bar keeps the lead list focused by source, stage, and contact date. -->
   <div class="mt-4 min-w-0 bg-white rounded-xl border-gray-100 shadow-sm overflow-hidden">
   
   <div class="p-3 sm:p-4 flex flex-wrap items-center justify-between gap-4 border-b border-gray-50">
     <div class="flex flex-wrap items-center gap-2 min-w-0">
         <i class="pi pi-filter text-gray-500 text-sm"></i>
 
-      <!--Source Dropdown -->
+      <!-- Source filter narrows the list to the selected acquisition channel. -->
        <p-dropdown
         class="text-xs font-bold text-gray-600"
         [options]="sources"
@@ -25,7 +25,7 @@
           </span>
         </ng-template>
       </p-dropdown>
-      <!-- Stage Dropdown -->
+      <!-- Stage filter keeps the table aligned with the current pipeline step. -->
      <p-dropdown
        [options]="stages"
        [(ngModel)]="selectedStage"
@@ -67,7 +67,7 @@
     </div>
   </div>
 
-  <!-- Table -->
+  <!-- The table renders only the filtered lead records so the user can scan the current pipeline quickly. -->
   <p-table
     [value]="filteredLeads"
     responsiveLayout="stack"
