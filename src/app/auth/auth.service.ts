@@ -9,7 +9,7 @@ export interface AuthUser {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   login(credentials: { email: string; password: string }): Observable<void> {
-    if (credentials.email === 'admin@aircraftly.com' && credentials.password === 'Admin@123') {
+    if (credentials.email === 'admin@airpearl.com' && credentials.password === 'Admin@123') {
       // This is the mock authentication flow used by the demo app; a real API would return this payload from the backend.
       const user: AuthUser = { name: 'Shivam D', email: credentials.email };
       localStorage.setItem('auth_token', 'demo-token');
