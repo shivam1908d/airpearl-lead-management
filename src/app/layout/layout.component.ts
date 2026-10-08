@@ -1,6 +1,7 @@
 import { Component, HostListener, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HeaderComponent } from './header/header.component';
+import { BreadcrumbComponent } from './breadcrumb/breadcrumb.component';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { SidebarComponent } from './sidebar/sidebar.component';
 import { filter } from 'rxjs';
@@ -10,7 +11,7 @@ const DESKTOP_MIN_WIDTH = 768; // Matches the md breakpoint used by the app shel
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [CommonModule, HeaderComponent, RouterOutlet, SidebarComponent],
+  imports: [CommonModule, HeaderComponent, RouterOutlet, SidebarComponent, BreadcrumbComponent],
   templateUrl: './layout.component.html',
   styleUrl: './layout.component.css'
 })

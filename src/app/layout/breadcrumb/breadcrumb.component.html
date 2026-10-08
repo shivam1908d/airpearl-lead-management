@@ -1,0 +1,14 @@
+<nav *ngIf="crumbs.length" aria-label="Breadcrumb">
+  <ol class="mb-4 flex flex-wrap items-center gap-2 text-xs text-gray-500 sm:text-sm">
+    <ng-container *ngFor="let crumb of crumbs; let last = last">
+      <li class="font-medium"
+          [ngClass]="last ? 'text-black' : 'text-gray-700'"
+          [attr.aria-current]="last ? 'page' : null">
+        {{ crumb }}
+      </li>
+      <li *ngIf="!last" aria-hidden="true">
+        <i class="pi pi-angle-right text-gray-400"></i>
+      </li>
+    </ng-container>
+  </ol>
+</nav>
