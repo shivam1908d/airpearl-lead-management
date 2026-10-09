@@ -1,1 +1,257 @@
-<p>training-program works!</p>
+<div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
+
+  <!-- title on the left, search and filters on the right -->
+  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-4 py-4 sm:px-6">
+    <div>
+      <p class="text-[11px] font-semibold uppercase tracking-widest text-sky-600">Training program</p>
+      <h1 class="text-xl font-bold text-gray-900 sm:text-2xl">Courses</h1>
+    </div>
+
+    <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+      <div class="relative min-w-0 flex-1 sm:w-56 sm:flex-none">
+        <i class="pi pi-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400" aria-hidden="true"></i>
+        <input type="text" [(ngModel)]="search" placeholder="Search courses" aria-label="Search courses"
+               class="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-8 pr-3 text-sm outline-none transition focus:border-sky-400 focus:bg-white focus:ring-2 focus:ring-sky-100" />
+      </div>
+
+      <select [(ngModel)]="categoryFilter" aria-label="Filter by category"
+              class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none transition hover:bg-white focus:border-sky-400 focus:ring-2 focus:ring-sky-100">
+        <option value="">All categories</option>
+        <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+      </select>
+
+      <button type="button" (click)="openAdd()"
+              class="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-700 active:scale-[0.98]">
+        <i class="pi pi-plus text-xs" aria-hidden="true"></i>
+        <span>Add course</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="p-4 sm:p-6">
+
+    <!-- status cards, click one to filter the table -->
+    <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <button type="button" *ngFor="let card of statCards" (click)="filterByStatus(card.status)"
+              class="flex items-center gap-3 rounded-xl border bg-white p-3 text-left transition hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md"
+              [ngClass]="statusFilter === card.status ? 'border-sky-400 ring-2 ring-sky-100' : 'border-gray-200'">
+        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg" [ngClass]="card.tone">
+          <i class="pi" [ngClass]="card.icon" aria-hidden="true"></i>
+        </span>
+        <span>
+          <span class="block text-xl font-semibold leading-tight text-gray-900">{{ countFor(card.status) }}</span>
+          <span class="block text-xs text-gray-500">{{ card.label }}</span>
+        </span>
+      </button>
+    </div>
+
+    <!-- course table -->
+    <div class="mt-5 overflow-x-auto rounded-xl border border-gray-200">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-gray-50 text-xs font-medium text-gray-500">
+          <tr>
+            <th class="px-4 py-3">
+              <button type="button" (click)="setSort('name')" class="inline-flex items-center gap-1 hover:text-gray-900">
+                Course <i class="pi text-[10px]" [ngClass]="sortIcon('name')" aria-hidden="true"></i>
+              </button>
+            </th>
+            <th class="hidden px-4 py-3 md:table-cell">Category</th>
+            <th class="hidden px-4 py-3 lg:table-cell">Duration</th>
+            <th class="hidden px-4 py-3 lg:table-cell">
+              <button type="button" (click)="setSort('flightHours')" class="inline-flex items-center gap-1 hover:text-gray-900">
+                Flight hours <i class="pi text-[10px]" [ngClass]="sortIcon('flightHours')" aria-hidden="true"></i>
+              </button>
+            </th>
+            <th class="hidden px-4 py-3 sm:table-cell">
+              <button type="button" (click)="setSort('enrolled')" class="inline-flex items-center gap-1 hover:text-gray-900">
+                Enrolled <i class="pi text-[10px]" [ngClass]="sortIcon('enrolled')" aria-hidden="true"></i>
+              </button>
+            </th>
+            <th class="px-4 py-3">Status</th>
+            <th class="w-20 px-2 py-3"><span class="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <ng-container *ngFor="let c of visibleCourses; trackBy: trackById">
+
+            <!-- main row, click to open the details underneath -->
+            <tr (click)="toggleRow(c.id)"
+                class="group cursor-pointer border-t border-gray-100 transition-colors hover:bg-sky-50/60"
+                [ngClass]="expandedId === c.id ? 'bg-sky-50/50' : ''">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-3">
+                  <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" [ngClass]="categoryStyle[c.category].tone">
+                    <i class="pi" [ngClass]="categoryStyle[c.category].icon" aria-hidden="true"></i>
+                  </span>
+                  <div class="min-w-0">
+                    <p class="font-medium text-gray-900 transition-colors group-hover:text-sky-700">{{ c.name }}</p>
+                    <p class="text-xs text-gray-500">{{ c.code }}</p>
+                  </div>
+                </div>
+              </td>
+
+              <td class="hidden px-4 py-3 text-gray-600 md:table-cell">{{ c.category }}</td>
+              <td class="hidden px-4 py-3 text-gray-600 lg:table-cell">{{ c.durationWeeks }} weeks</td>
+              <td class="hidden px-4 py-3 text-gray-600 lg:table-cell">{{ c.flightHours ? c.flightHours + ' h' : '-' }}</td>
+
+              <td class="hidden px-4 py-3 sm:table-cell">
+                <div class="w-28">
+                  <div class="flex justify-between text-xs text-gray-600">
+                    <span>{{ c.enrolled }}/{{ c.capacity }}</span>
+                    <span *ngIf="seatsLeft(c) === 0" class="text-amber-600">Full</span>
+                  </div>
+                  <div class="mt-1 h-1.5 overflow-hidden rounded-full bg-gray-100">
+                    <div class="h-full rounded-full transition-all" [ngClass]="barClass(c)" [style.width.%]="fillPercent(c)"></div>
+                  </div>
+                </div>
+              </td>
+
+              <td class="px-4 py-3">
+                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset" [ngClass]="statusClass[c.status]">
+                  {{ c.status }}
+                </span>
+              </td>
+
+              <td class="px-2 py-3">
+                <div class="flex items-center justify-end gap-1">
+                  <button type="button" (click)="openEdit(c); $event.stopPropagation()" aria-label="Edit course"
+                          class="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-white hover:text-sky-600 hover:shadow-sm group-hover:text-gray-600">
+                    <i class="pi pi-pencil text-xs" aria-hidden="true"></i>
+                  </button>
+                  <i class="pi pi-chevron-down text-xs text-gray-400 transition-transform" [class.rotate-180]="expandedId === c.id" aria-hidden="true"></i>
+                </div>
+              </td>
+            </tr>
+
+            <!-- details row, also the only place phones see duration and seats -->
+            <tr *ngIf="expandedId === c.id" class="border-t border-gray-100 bg-sky-50/40">
+              <td colspan="7" class="px-4 py-4 sm:px-6">
+                <p class="max-w-2xl text-sm text-gray-600">{{ c.description }}</p>
+                <dl class="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
+                  <div>
+                    <dt class="text-xs text-gray-500">Next intake</dt>
+                    <dd class="font-medium text-gray-900">{{ c.nextIntake }}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-xs text-gray-500">Duration</dt>
+                    <dd class="font-medium text-gray-900">{{ c.durationWeeks }} weeks</dd>
+                  </div>
+                  <div>
+                    <dt class="text-xs text-gray-500">Flight hours</dt>
+                    <dd class="font-medium text-gray-900">{{ c.flightHours ? c.flightHours + ' h' : 'Ground school only' }}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-xs text-gray-500">Seats</dt>
+                    <dd class="font-medium text-gray-900">{{ c.enrolled }} of {{ c.capacity }} filled ({{ seatsLeft(c) }} left)</dd>
+                  </div>
+                </dl>
+              </td>
+            </tr>
+          </ng-container>
+
+          <!-- nothing matched -->
+          <tr *ngIf="visibleCourses.length === 0">
+            <td colspan="7" class="px-4 py-12 text-center">
+              <i class="pi pi-search mb-2 text-2xl text-gray-300" aria-hidden="true"></i>
+              <p class="text-sm font-medium text-gray-700">No courses match your filters</p>
+              <button type="button" (click)="clearFilters()" class="mt-2 text-sm font-medium text-sky-600 hover:underline">
+                Clear filters
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="mt-3 text-xs text-gray-500">
+      Showing {{ visibleCourses.length }} of {{ courses.length }} courses · {{ totalEnrolled }} students enrolled
+    </p>
+  </div>
+</div>
+
+<!-- add / edit dialog -->
+<div *ngIf="modalOpen"
+     class="fixed inset-0 z-[70] flex items-end justify-center bg-gray-900/50 sm:items-center sm:p-4"
+     (click)="closeModal()">
+  <div role="dialog" aria-modal="true" aria-labelledby="course-dialog-title"
+       class="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white p-5 shadow-xl sm:rounded-2xl"
+       (click)="$event.stopPropagation()">
+
+    <div class="flex items-center justify-between">
+      <h2 id="course-dialog-title" class="text-lg font-semibold text-gray-900">
+        {{ editingId === null ? 'Add course' : 'Edit course' }}
+      </h2>
+      <button type="button" (click)="closeModal()" aria-label="Close"
+              class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100">
+        <i class="pi pi-times" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="save()" class="mt-4 space-y-4" novalidate>
+
+      <div>
+        <label for="c-name" class="mb-1 block text-sm font-medium text-gray-700">Course name</label>
+        <input id="c-name" type="text" formControlName="name" [ngClass]="fieldClass" placeholder="Instrument rating" />
+        <p *ngIf="form.controls.name.touched && form.controls.name.invalid" class="mt-1 text-xs text-red-600">Enter a course name.</p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label for="c-code" class="mb-1 block text-sm font-medium text-gray-700">Code</label>
+          <input id="c-code" type="text" formControlName="code" [ngClass]="fieldClass" placeholder="IR(A)" />
+          <p *ngIf="form.controls.code.touched && form.controls.code.invalid" class="mt-1 text-xs text-red-600">Enter a code.</p>
+        </div>
+        <div>
+          <label for="c-cat" class="mb-1 block text-sm font-medium text-gray-700">Category</label>
+          <select id="c-cat" formControlName="category" [ngClass]="fieldClass">
+            <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label for="c-status" class="mb-1 block text-sm font-medium text-gray-700">Status</label>
+          <select id="c-status" formControlName="status" [ngClass]="fieldClass">
+            <option *ngFor="let s of statuses" [value]="s">{{ s }}</option>
+          </select>
+        </div>
+        <div>
+          <label for="c-cap" class="mb-1 block text-sm font-medium text-gray-700">Seats</label>
+          <input id="c-cap" type="number" min="1" formControlName="capacity" [ngClass]="fieldClass" />
+          <p *ngIf="form.controls.capacity.touched && form.controls.capacity.invalid" class="mt-1 text-xs text-red-600">Enter 1 or more.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label for="c-weeks" class="mb-1 block text-sm font-medium text-gray-700">Duration (weeks)</label>
+          <input id="c-weeks" type="number" min="1" formControlName="durationWeeks" [ngClass]="fieldClass" />
+          <p *ngIf="form.controls.durationWeeks.touched && form.controls.durationWeeks.invalid" class="mt-1 text-xs text-red-600">Enter 1 or more.</p>
+        </div>
+        <div>
+          <label for="c-hours" class="mb-1 block text-sm font-medium text-gray-700">Flight hours</label>
+          <input id="c-hours" type="number" min="0" formControlName="flightHours" [ngClass]="fieldClass" />
+          <p *ngIf="form.controls.flightHours.touched && form.controls.flightHours.invalid" class="mt-1 text-xs text-red-600">Enter 0 or more.</p>
+        </div>
+      </div>
+
+      <div>
+        <label for="c-desc" class="mb-1 block text-sm font-medium text-gray-700">Description</label>
+        <textarea id="c-desc" rows="3" formControlName="description" [ngClass]="fieldClass" placeholder="What this course covers"></textarea>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-1">
+        <button type="button" (click)="closeModal()"
+                class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+          Cancel
+        </button>
+        <button type="submit"
+                class="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-700 active:scale-[0.98]">
+          {{ editingId === null ? 'Add course' : 'Save changes' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
