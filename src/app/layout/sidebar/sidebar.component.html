@@ -1,7 +1,7 @@
 <div class="sidebar flex h-full w-full flex-col bg-white">
 
-  <!-- The brand area keeps the sidebar header aligned with the top app chrome. -->
-  <div class="flex h-16 shrink-0 items-center gap-2.5 border-b border-gray-200 px-5">
+  <!-- logo row, only needed on phones because the drawer covers the top bar there -->
+  <div class="flex h-16 shrink-0 items-center gap-2.5 border-b border-gray-200 pl-5 pr-14 md:hidden">
     <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-50 ring-1 ring-sky-100">
       <svg viewBox="0 0 24 24" class="h-6 w-6 text-sky-500" aria-hidden="true">
         <path fill="currentColor"
@@ -12,24 +12,22 @@
     <span class="text-lg font-semibold tracking-tight text-sky-500">AirPearl</span>
   </div>
 
-  <!-- This is the scrollable navigation area; the rest of the sidebar stays fixed. -->
-  <nav aria-label="Main navigation" class="sidebar-scroll flex-1 overflow-y-auto px-3 py-4">
+  <!-- only this part scrolls, header and footer stay put -->
+  <nav aria-label="Main navigation" class="sidebar-scroll min-h-0 flex-1 overflow-y-auto px-3 py-5">
 
-    <div *ngFor="let section of menu; let first = first" [class.mt-6]="!first">
+    <div *ngFor="let section of menu; let first = first" [class.mt-7]="!first">
 
-      <!-- Each section groups related screens so the navigation stays easy to scan. -->
-      <p class="px-3 pb-1 text-xs font-semibold text-gray-500">
-  {{ section.title }}
-</p>
+      <p class="px-3 pb-2 text-xs font-semibold text-gray-500">
+        {{ section.title }}
+      </p>
 
-      <!-- These links map directly to the route tree for each dashboard or management area. -->
-      <ul class="space-y-0.5">
+      <ul class="space-y-1">
         <li *ngFor="let item of section.items">
           <a [routerLink]="item.route"
              routerLinkActive="!bg-blue-50 !text-blue-700"
              ariaCurrentWhenActive="page"
-             class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
-            <i class="pi w-5 text-center text-base opacity-75 group-hover:opacity-100"
+             class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+            <i class="pi w-5 text-center text-[17px] opacity-75 group-hover:opacity-100"
                [ngClass]="item.icon" aria-hidden="true"></i>
             <span class="truncate">{{ item.label }}</span>
           </a>
@@ -38,8 +36,7 @@
     </div>
   </nav>
 
-  <!-- Footer -->
-  <div class="shrink-0 border-t border-gray-200 px-5 py-3 text-xs text-gray-400">
+  <div class="shrink-0 border-t border-gray-200 px-5 py-3 text-[11px] leading-snug text-gray-400">
     &copy; 2026 AirPearl. All rights reserved.
   </div>
 </div>

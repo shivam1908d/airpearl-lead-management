@@ -1,29 +1,37 @@
-<div class="flex h-[100dvh] overflow-hidden bg-gray-50">
+<div class="flex h-[100dvh] flex-col overflow-hidden bg-gray-50">
 
-  <!-- Dark backdrop (mobile only): tap to close -->
-  <div class="fixed inset-0 z-[55] bg-gray-900/50 transition-opacity duration-300 md:hidden"
-       [ngClass]="isSidebarOpen ? 'opacity-100' : 'pointer-events-none opacity-0'"
-       (click)="closeSidebar()"
-       aria-hidden="true"></div>
+  <!-- top bar runs full width, sidebar and page sit below it -->
+  <app-header (toggleSidebar)="toggleSidebar()"></app-header>
 
-  <!-- Sidebar wrapper: full-height drawer on mobile, normal column from md up -->
-  <aside
-    class="fixed inset-y-0 left-0 z-[60] h-full w-64 max-w-[85vw] shrink-0 overflow-hidden bg-white shadow-xl transition-all duration-300 ease-in-out md:static md:z-auto md:max-w-none md:shadow-none"
-    [ngClass]="isSidebarOpen
-      ? 'translate-x-0 md:w-56 md:border-r md:border-gray-200'
-      : '-translate-x-full md:w-0 md:translate-x-0'"
-    [attr.inert]="isSidebarOpen ? null : ''">
-    <app-sidebar class="block h-full"></app-sidebar>
-  </aside>
+  <div class="flex min-h-0 flex-1">
 
-  <!-- Right side -->
-  <div class="flex min-w-0 flex-1 flex-col">
+    <!-- dark layer behind the mobile drawer, tap to close -->
+    <div class="fixed inset-0 z-[55] bg-gray-900/50 transition-opacity duration-300 md:hidden"
+         [ngClass]="isSidebarOpen ? 'opacity-100' : 'pointer-events-none opacity-0'"
+         (click)="closeSidebar()"
+         aria-hidden="true"></div>
 
-    <!-- Header -->
-    <app-header (toggleSidebar)="toggleSidebar()"></app-header>
+    <!-- drawer on phones, normal column from md up (change md:w-60 to resize it) -->
+    <aside
+      class="fixed inset-y-0 left-0 z-[60] w-64 max-w-[85vw] overflow-hidden bg-white shadow-xl transition-all duration-300 ease-in-out md:static md:z-auto md:max-w-none md:shrink-0 md:shadow-none"
+      [ngClass]="isSidebarOpen
+        ? 'translate-x-0 md:w-60 md:border-r md:border-gray-200'
+        : '-translate-x-full md:w-0 md:translate-x-0'"
+      [attr.inert]="isSidebarOpen ? null : ''">
 
-    <!-- Page content -->
-    <main class="flex-1 overflow-auto bg-gray-50 p-3 sm:p-4 md:p-6">
+      <!-- close button, phones only -->
+      <button type="button"
+              (click)="closeSidebar()"
+              aria-label="Close menu"
+              class="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 md:hidden">
+        <i class="pi pi-times" aria-hidden="true"></i>
+      </button>
+
+      <app-sidebar class="block h-full"></app-sidebar>
+    </aside>
+
+    <!-- page content -->
+    <main class="min-w-0 flex-1 overflow-auto bg-gray-50 p-3 sm:p-4 md:p-6">
       <div class="h-full w-full">
         <app-breadcrumb></app-breadcrumb>
         <router-outlet></router-outlet>
