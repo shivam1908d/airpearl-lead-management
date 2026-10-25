@@ -1,0 +1,39 @@
+/* numbers line up neatly in the hours columns */
+table {
+  font-variant-numeric: tabular-nums;
+}
+
+/* thin scrollbar when the table scrolls sideways on small screens */
+.table-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.table-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 8px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+}
+
+/* opened details row fades in instead of popping */
+.details-row {
+  animation: details-in 0.18s ease-out;
+}
+
+@keyframes details-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* respect the "reduce motion" setting on the device */
+@media (prefers-reduced-motion: reduce) {
+  .details-row {
+    animation: none;
+  }
+}

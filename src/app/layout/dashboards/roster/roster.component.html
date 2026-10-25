@@ -253,7 +253,7 @@
 </section>
 
 <div *ngIf="isModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-  <div class="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl">
+  <div class="max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl">
     <div class="mb-5 flex items-center justify-between">
       <div>
         <p class="text-xs font-semibold uppercase tracking-[0.18em] text-sky-600">Roster</p>
@@ -292,7 +292,12 @@
 
       <label class="space-y-1.5 text-sm font-medium text-slate-700">
         <span>Aircraft / Plane</span>
-        <input type="text" [(ngModel)]="form.aircraft" placeholder="A320" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 outline-none transition focus:border-sky-400 focus:bg-white" />
+        <select [(ngModel)]="form.aircraft" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 outline-none transition focus:border-sky-400 focus:bg-white">
+          <option value="" disabled>Choose an aircraft</option>
+          <option *ngFor="let a of aircraftOptions" [value]="a.registration" [disabled]="!!unavailableReason(a)">
+            {{ aircraftLabel(a) }}
+          </option>
+        </select>
       </label>
 
       <label class="space-y-1.5 text-sm font-medium text-slate-700">
@@ -306,6 +311,19 @@
       </label>
     </div>
 
+    <!-- flight time and what it does to the aircraft's hours -->
+    <div *ngIf="selectedAircraft" class="mt-4 rounded-2xl border px-4 py-3 text-sm"
+         [ngClass]="aircraftIssue ? 'border-red-200 bg-red-50 text-red-700' : 'border-sky-200 bg-sky-50 text-sky-800'">
+      <ng-container *ngIf="aircraftIssue; else flightSummary">{{ aircraftIssue }}</ng-container>
+      <ng-template #flightSummary>
+        <p class="font-medium">Flight time: {{ flightDurationText }}</p>
+        <p class="mt-0.5 text-xs">
+          {{ form.aircraft }} has {{ selectedFreeHours }} h left before its next inspection
+          and will have {{ hoursAfterFlight }} h left after this flight.
+        </p>
+      </ng-template>
+    </div>
+
     <div class="mt-6 flex justify-end gap-3">
       <button type="button" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50" (click)="closeModal()">
         Cancel
@@ -313,7 +331,7 @@
       <button
         type="button"
         class="rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-sky-300"
-        [disabled]="!isFormValid"
+        [disabled]="!isFormValid || !!aircraftIssue"
         (click)="assignRoster()"
       >
         Assign
