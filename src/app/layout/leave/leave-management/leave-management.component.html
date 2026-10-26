@@ -1,1 +1,290 @@
-<p>leave-management works!</p>
+<div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
+
+  <!-- title on the left, search, filter and apply button on the right -->
+  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-4 py-4 sm:px-6">
+    <div>
+      <p class="text-[11px] font-semibold uppercase tracking-widest text-sky-600">Leave</p>
+      <h1 class="text-xl font-bold text-gray-900 sm:text-2xl">Leave management</h1>
+    </div>
+
+    <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+      <div class="relative min-w-0 flex-1 sm:w-52 sm:flex-none">
+        <i class="pi pi-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400" aria-hidden="true"></i>
+        <input type="text" [(ngModel)]="search" placeholder="Search by name" aria-label="Search by name"
+               class="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-8 pr-3 text-sm outline-none transition focus:border-sky-400 focus:bg-white focus:ring-2 focus:ring-sky-100" />
+      </div>
+
+      <select [(ngModel)]="typeFilter" aria-label="Filter by leave type"
+              class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none transition hover:bg-white focus:border-sky-400 focus:ring-2 focus:ring-sky-100">
+        <option value="">All leave types</option>
+        <option *ngFor="let t of types" [value]="t">{{ typeLabel(t) }}</option>
+      </select>
+
+      <button type="button" (click)="openApply()"
+              class="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-700 active:scale-[0.98]">
+        <i class="pi pi-plus text-xs" aria-hidden="true"></i>
+        <span>Apply leave</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="p-4 sm:p-6">
+
+    <!-- status cards, click one to filter the table -->
+    <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <button type="button" *ngFor="let card of statCards" (click)="selectCard(card.key)"
+              class="flex items-center gap-3 rounded-xl border bg-white p-3 text-left transition hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md"
+              [ngClass]="cardActive(card.key) ? 'border-sky-400 ring-2 ring-sky-100' : 'border-gray-200'">
+        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg" [ngClass]="card.tone">
+          <i class="pi" [ngClass]="card.icon" aria-hidden="true"></i>
+        </span>
+        <span>
+          <span class="block text-xl font-semibold leading-tight text-gray-900">{{ cardCount(card.key) }}</span>
+          <span class="block text-xs text-gray-500">{{ card.label }}</span>
+        </span>
+      </button>
+    </div>
+
+    <!-- leave balance of one person -->
+    <div class="mt-5 rounded-xl border border-gray-200 p-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-sm font-semibold text-gray-700">Leave balance</h2>
+          <p class="text-xs text-gray-500">Days left this year, pending requests included.</p>
+        </div>
+        <select [(ngModel)]="balancePerson" aria-label="Choose a person"
+                class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none transition hover:bg-white focus:border-sky-400 focus:ring-2 focus:ring-sky-100">
+          <option *ngFor="let p of crew" [value]="p.name">{{ p.name }} · {{ p.role }}</option>
+        </select>
+      </div>
+
+      <div class="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 lg:grid-cols-4">
+        <div *ngFor="let row of balanceRows">
+          <div class="flex items-baseline justify-between text-sm">
+            <span class="text-gray-600">{{ typeLabel(row.type) }}</span>
+            <span class="font-medium text-gray-900">{{ row.left }}<span class="text-xs font-normal text-gray-500"> of {{ row.allowance }} left</span></span>
+          </div>
+          <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-gray-100">
+            <div class="h-full rounded-full transition-all" [ngClass]="meterBar(row)" [style.width.%]="row.percent"></div>
+          </div>
+        </div>
+      </div>
+
+      <p class="mt-3 text-xs text-gray-500">Unpaid leave taken: {{ unpaidDays }} {{ unpaidDays === 1 ? 'day' : 'days' }}</p>
+    </div>
+
+    <!-- requests table -->
+    <div class="table-scroll mt-5 overflow-x-auto rounded-xl border border-gray-200">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-gray-50 text-xs font-medium text-gray-500">
+          <tr>
+            <th class="px-4 py-3">
+              <button type="button" (click)="setSort('person')" class="inline-flex items-center gap-1 hover:text-gray-900">
+                Person <i class="pi text-[10px]" [ngClass]="sortIcon('person')" aria-hidden="true"></i>
+              </button>
+            </th>
+            <th class="hidden px-4 py-3 md:table-cell">Leave type</th>
+            <th class="px-4 py-3">
+              <button type="button" (click)="setSort('from')" class="inline-flex items-center gap-1 hover:text-gray-900">
+                Dates <i class="pi text-[10px]" [ngClass]="sortIcon('from')" aria-hidden="true"></i>
+              </button>
+            </th>
+            <th class="px-4 py-3">Status</th>
+            <th class="w-28 px-2 py-3"><span class="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <ng-container *ngFor="let l of visibleRequests; trackBy: trackById">
+
+            <!-- main row, click to open the details -->
+            <tr (click)="toggleRow(l.id)"
+                class="group cursor-pointer border-t border-gray-100 transition-colors hover:bg-sky-50/60"
+                [ngClass]="expandedId === l.id ? 'bg-sky-50/50' : ''">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-3">
+                  <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-medium text-sky-700">
+                    {{ initials(l.person) }}
+                  </span>
+                  <div class="min-w-0">
+                    <p class="font-medium text-gray-900 transition-colors group-hover:text-sky-700">{{ l.person }}</p>
+                    <p class="text-xs text-gray-500">{{ l.role }}<span class="md:hidden"> · {{ typeLabel(l.type) }}</span></p>
+                  </div>
+                </div>
+              </td>
+
+              <td class="hidden px-4 py-3 md:table-cell">
+                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium" [ngClass]="typeTone[l.type]">
+                  {{ typeLabel(l.type) }}
+                </span>
+              </td>
+
+              <td class="px-4 py-3">
+                <p class="whitespace-nowrap text-gray-900">
+                  {{ l.from | date:'d MMM' }}<ng-container *ngIf="l.to !== l.from"> – {{ l.to | date:'d MMM' }}</ng-container>
+                </p>
+                <p class="text-xs text-gray-500">{{ l.days }} {{ l.days === 1 ? 'day' : 'days' }}</p>
+              </td>
+
+              <td class="px-4 py-3">
+                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset" [ngClass]="statusClass[l.status]">
+                  {{ l.status }}
+                </span>
+              </td>
+
+              <td class="px-2 py-3">
+                <div class="flex items-center justify-end gap-1">
+                  <ng-container *ngIf="l.status === 'Pending'">
+                    <button type="button" (click)="review(l, 'Approved'); $event.stopPropagation()" aria-label="Approve leave"
+                            class="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-green-50 hover:text-green-600">
+                      <i class="pi pi-check text-xs" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" (click)="review(l, 'Rejected'); $event.stopPropagation()" aria-label="Reject leave"
+                            class="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-red-50 hover:text-red-600">
+                      <i class="pi pi-times text-xs" aria-hidden="true"></i>
+                    </button>
+                  </ng-container>
+                  <i class="pi pi-chevron-down text-xs text-gray-400 transition-transform" [class.rotate-180]="expandedId === l.id" aria-hidden="true"></i>
+                </div>
+              </td>
+            </tr>
+
+            <!-- details row -->
+            <tr *ngIf="expandedId === l.id" class="details-row border-t border-gray-100 bg-sky-50/40">
+              <td colspan="5" class="px-4 py-4 sm:px-6">
+                <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
+                  <div>
+                    <dt class="text-xs text-gray-500">Leave type</dt>
+                    <dd class="font-medium text-gray-900">{{ typeLabel(l.type) }}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-xs text-gray-500">Dates</dt>
+                    <dd class="font-medium text-gray-900">
+                      {{ l.from | date:'d MMM y' }}<ng-container *ngIf="l.to !== l.from"> to {{ l.to | date:'d MMM y' }}</ng-container>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt class="text-xs text-gray-500">Duration</dt>
+                    <dd class="font-medium text-gray-900">{{ l.days }} {{ l.days === 1 ? 'day' : 'days' }}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-xs text-gray-500">Applied on</dt>
+                    <dd class="font-medium text-gray-900">{{ l.appliedOn | date:'d MMM y' }}</dd>
+                  </div>
+                </dl>
+
+                <p class="mt-3 text-sm text-gray-600"><span class="text-gray-500">Reason: </span>{{ l.reason }}</p>
+
+                <p *ngIf="l.reviewNote" class="mt-3 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700">
+                  <span class="text-gray-500">Reviewer note: </span>{{ l.reviewNote }}
+                </p>
+
+                <!-- decide with an optional note -->
+                <div *ngIf="l.status === 'Pending'" class="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <input type="text" [(ngModel)]="reviewNotes[l.id]" placeholder="Add a note for {{ l.person }} (optional)"
+                         [attr.aria-label]="'Note for ' + l.person"
+                         class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100 sm:max-w-md" />
+                  <div class="flex gap-2">
+                    <button type="button" (click)="review(l, 'Rejected')"
+                            class="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50">
+                      Reject
+                    </button>
+                    <button type="button" (click)="review(l, 'Approved')"
+                            class="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-700 active:scale-[0.98]">
+                      Approve
+                    </button>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+
+          <!-- nothing matched -->
+          <tr *ngIf="visibleRequests.length === 0">
+            <td colspan="5" class="px-4 py-12 text-center">
+              <i class="pi pi-search mb-2 text-2xl text-gray-300" aria-hidden="true"></i>
+              <p class="text-sm font-medium text-gray-700">No leave requests match your filters</p>
+              <button type="button" (click)="clearFilters()" class="mt-2 text-sm font-medium text-sky-600 hover:underline">
+                Clear filters
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="mt-3 text-xs text-gray-500">
+      Showing {{ visibleRequests.length }} of {{ requests.length }} requests · {{ pendingCount }} waiting for a decision
+    </p>
+  </div>
+</div>
+
+<!-- apply leave dialog -->
+<div *ngIf="modalOpen"
+     class="fixed inset-0 z-[70] flex items-end justify-center bg-gray-900/50 sm:items-center sm:p-4"
+     (click)="closeModal()">
+  <div role="dialog" aria-modal="true" aria-labelledby="leave-dialog-title"
+       class="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white p-5 shadow-xl sm:rounded-2xl"
+       (click)="$event.stopPropagation()">
+
+    <div class="flex items-center justify-between">
+      <h2 id="leave-dialog-title" class="text-lg font-semibold text-gray-900">Apply leave</h2>
+      <button type="button" (click)="closeModal()" aria-label="Close"
+              class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100">
+        <i class="pi pi-times" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="mt-4 space-y-4" novalidate>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label for="l-person" class="mb-1 block text-sm font-medium text-gray-700">Person</label>
+          <select id="l-person" formControlName="person" [ngClass]="fieldClass">
+            <option *ngFor="let p of crew" [value]="p.name">{{ p.name }} · {{ p.role }}</option>
+          </select>
+        </div>
+        <div>
+          <label for="l-type" class="mb-1 block text-sm font-medium text-gray-700">Leave type</label>
+          <select id="l-type" formControlName="type" [ngClass]="fieldClass">
+            <option *ngFor="let t of types" [value]="t">{{ typeLabel(t) }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label for="l-from" class="mb-1 block text-sm font-medium text-gray-700">From</label>
+          <input id="l-from" type="date" formControlName="from" [ngClass]="fieldClass" />
+        </div>
+        <div>
+          <label for="l-to" class="mb-1 block text-sm font-medium text-gray-700">To</label>
+          <input id="l-to" type="date" formControlName="to" [attr.min]="form.controls.from.value" [ngClass]="fieldClass" />
+        </div>
+      </div>
+
+      <!-- days and balance, or the reason this leave can't be sent -->
+      <div *ngIf="dialogIssue || dialogSummary" class="rounded-xl border px-4 py-3 text-sm"
+           [ngClass]="dialogIssue ? 'border-red-200 bg-red-50 text-red-700' : 'border-sky-200 bg-sky-50 text-sky-800'">
+        {{ dialogIssue || dialogSummary }}
+      </div>
+
+      <div>
+        <label for="l-reason" class="mb-1 block text-sm font-medium text-gray-700">Reason</label>
+        <textarea id="l-reason" rows="3" formControlName="reason" [ngClass]="fieldClass" placeholder="A short reason for the leave"></textarea>
+        <p *ngIf="form.controls.reason.touched && form.controls.reason.invalid" class="mt-1 text-xs text-red-600">Add a short reason.</p>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-1">
+        <button type="button" (click)="closeModal()"
+                class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+          Cancel
+        </button>
+        <button type="submit" [disabled]="!!dialogIssue"
+                class="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-sky-300">
+          Send request
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
