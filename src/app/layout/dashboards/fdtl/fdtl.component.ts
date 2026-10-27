@@ -1,20 +1,40 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import {
-  CREW_MEMBERS,
-  FDTL_ALERTS,
-  UPCOMING_DUTIES,
-  type CrewMember,
-  type DutyRecord,
-  type FdtlAlert,
-  type FdtlResult,
-  type FdtlStatus,
-  type Usage,
-} from './fdtl.mock';
+import { Subscription } from 'rxjs';
+import { FDTL_API } from './fdtl.api';
+import type {
+  CrewMember,
+  DateRange,
+  DutyRecord,
+  FdtlAlert,
+  FdtlResult,
+  FdtlSnapshot,
+  FdtlStatus,
+  Usage,
+} from './fdtl.models';
 
-type SortKey = 'name' | 'nextDuty' | 'dutyUtilization' | 'flightUtilization' | 'rest' | 'status';
+type SortKey = 'name' | 'status' | 'duty' | 'flight';
 type SortDirection = 'asc' | 'desc';
+type GroupKey = 'all' | 'compliant' | 'attention' | 'violation' | 'nodata';
+
+// worst first, this is what the default sort uses
+const SEVERITY: Record<FdtlStatus, number> = {
+  Violation: 0,
+  'Rest Required': 1,
+  'Near Limit': 2,
+  'No Data': 3,
+  Compliant: 4,
+};
+
+// the tabs above the table, every crew member belongs to exactly one of them
+const GROUPS: Record<GroupKey, { label: string; statuses: FdtlStatus[] | null; dot: string }> = {
+  all: { label: 'All crew', statuses: null, dot: 'bg-gray-400' },
+  compliant: { label: 'Compliant', statuses: ['Compliant'], dot: 'bg-green-500' },
+  attention: { label: 'Needs attention', statuses: ['Near Limit', 'Rest Required'], dot: 'bg-amber-400' },
+  violation: { label: 'Violations', statuses: ['Violation'], dot: 'bg-red-500' },
+  nodata: { label: 'No data', statuses: ['No Data'], dot: 'bg-gray-300' },
+};
 
 @Component({
   selector: 'app-fdtl',
@@ -24,108 +44,144 @@ type SortDirection = 'asc' | 'desc';
   styleUrl: './fdtl.component.css',
 })
 export class FdtlComponent implements OnInit, OnDestroy {
-  // Connected to the “Crew Compliance” filter bar in the HTML (`.filter-toolbar`, `.select-filter`, `[(ngModel)]`).
-  // These option lists define the values shown in the dropdowns so the page stays aligned with the mock FDTL dataset and the filters act on the same status/role/base values.
-  readonly statusOptions: FdtlStatus[] = [
-    'Compliant', 'Near Limit', 'Violation', 'Rest Required', 'No Data',
-  ];
-  readonly roleOptions = ['Captain', 'First Officer', 'Cabin Crew'];
-  readonly baseOptions = ['DEL', 'BOM', 'VNS'];
-  readonly crewMembers = CREW_MEMBERS;
-  readonly upcomingDuties = UPCOMING_DUTIES;
-  readonly alerts = FDTL_ALERTS;
+  // all data comes through this, the mock now and the real API later
+  private api = inject(FDTL_API);
 
-  // Connected to the search field, date-range selector, table, and pagination controls in the “Crew Compliance” section (`input[type=search]`, `select`, `.pagination-bar`).
-  // These properties store the current user selections and page state so the table only shows the records and sort order the user has chosen.
-  searchTerm = '';
-  selectedStatus = 'All';
-  selectedRole = 'All';
-  selectedBase = 'All';
-  selectedDateRange = 'Today';
-  customDate = '2026-10-01';
-  sortKey: SortKey = 'name';
-  sortDirection: SortDirection = 'asc';
-  currentPage = 1;
-  readonly pageSize = 5;
+  readonly dateRanges: DateRange[] = ['Today', 'This Week', 'Custom Date'];
+  readonly groups = Object.keys(GROUPS) as GroupKey[];
+  readonly pageSize = 8;
+
+  // loaded data
+  crewMembers: CrewMember[] = [];
+  upcomingDuties: DutyRecord[] = [];
+  alerts: FdtlAlert[] = [];
+  policyName = '';
+  isSample = false;
+  lastUpdated: Date | null = null;
+
+  // screen state
   isLoading = true;
   hasError = false;
-  isCheckingCompliance = false;
-  lastChecked = new Date('2026-10-01T08:30:00');
-  selectedCrew: CrewMember | null = null;
-  activeMenuId: string | null = null;
-  toastMessage = '';
-  readonly reviewedAlertIds = new Set<string>();
 
-  private loadTimer?: ReturnType<typeof setTimeout>;
-  private checkTimer?: ReturnType<typeof setTimeout>;
+  // what is asked from the backend
+  selectedDateRange: DateRange = 'Today';
+  customDate = this.todayKey();
+
+  // filters on the loaded crew
+  searchTerm = '';
+  selectedGroup: GroupKey = 'all';
+  selectedRole = '';
+  selectedBase = '';
+  sortKey: SortKey = 'status';
+  sortDirection: SortDirection = 'asc';
+  currentPage = 1;
+
+  // alerts, drawer and toast
+  readonly reviewedAlertIds = new Set<string>();
+  showAllAlerts = false;
+  selectedCrew: CrewMember | null = null;
+  toastMessage = '';
+  toastIsError = false;
+
+  private loadSub?: Subscription;
   private toastTimer?: ReturnType<typeof setTimeout>;
 
-  // Connected to the loading skeletons and loader state used in `.summary-grid`, `.table-scroll`, and `@if (isLoading)` in the template.
-  // This lifecycle hook starts the short demo loading delay when the component first appears, so the skeleton UI is visible before the mock data is displayed.
   ngOnInit(): void {
-    this.loadTimer = setTimeout(() => this.isLoading = false, 350);
+    this.load();
   }
 
-  // Connected to the same loading and toast lifecycle used by the refresh, check, and notification actions across the page.
-  // This clears any pending timers when the component is destroyed so delayed UI updates do not keep running after the screen is closed.
   ngOnDestroy(): void {
-    clearTimeout(this.loadTimer);
-    clearTimeout(this.checkTimer);
+    this.loadSub?.unsubscribe();
     clearTimeout(this.toastTimer);
   }
 
-  // Connected to the top summary cards in `.summary-grid` and the `summaryCards` loop in the HTML.
-  // This getter calculates the counts shown in each card from the mock crew list and upcoming-duty list so the summary values stay current with the visible data.
-  get summary() {
-    const totalCrew = this.crewMembers.length;
-    const compliant = this.crewMembers.filter(crew => crew.status === 'Compliant').length;
-    const violations = this.crewMembers.filter(crew => crew.status === 'Violation').length;
-    const attentionRequired = this.crewMembers.filter(crew =>
-      crew.status === 'Near Limit' || crew.status === 'Rest Required',
-    ).length;
-    return { totalCrew, compliant, violations, attentionRequired, upcomingDuties: this.upcomingDuties.length };
+  // ---- loading ----
+
+  load(): void {
+    // a newer request replaces one that is still running
+    this.loadSub?.unsubscribe();
+    this.isLoading = true;
+    this.hasError = false;
+
+    this.loadSub = this.api
+      .getSnapshot({ range: this.selectedDateRange, date: this.customDate })
+      .subscribe({
+        next: (snapshot) => this.applySnapshot(snapshot),
+        error: () => {
+          this.isLoading = false;
+          this.hasError = true;
+        },
+      });
   }
 
-  // Connected to the `@for (card of summaryCards)` block inside `.summary-grid` and the card label/value/icon bindings in the template.
-  // This getter builds the data objects for each summary panel so the HTML can render the right label, tone, icon, and count without duplicating calculation logic.
-  get summaryCards() {
-    return [
-      { label: 'Total Crew', value: this.summary.totalCrew, description: 'Crew monitored', icon: 'pi pi-users', tone: 'neutral' },
-      { label: 'Compliant', value: this.summary.compliant, description: 'Currently within limits', icon: 'pi pi-check-circle', tone: 'good' },
-      { label: 'Attention Required', value: this.summary.attentionRequired, description: 'Approaching a limit', icon: 'pi pi-exclamation-triangle', tone: 'warning' },
-      { label: 'Violations', value: this.summary.violations, description: 'Needs immediate review', icon: 'pi pi-times-circle', tone: 'danger' },
-      { label: 'Upcoming Duties', value: this.summary.upcomingDuties, description: 'Scheduled duties', icon: 'pi pi-calendar', tone: 'info' },
-    ];
+  onDateChanged(): void {
+    this.currentPage = 1;
+    this.load();
   }
 
-  // Connected to the filtered crew count, the crew table rows, and the pagination controls in the “Crew Compliance” panel.
-  // This getter applies the search, status, role, base, date-range, and sort rules before the page renders the rows that match the current filter state.
+  private applySnapshot(snapshot: FdtlSnapshot): void {
+    this.crewMembers = snapshot.crew;
+    this.upcomingDuties = snapshot.duties;
+    this.alerts = snapshot.alerts;
+    this.policyName = snapshot.policyName;
+    this.isSample = snapshot.sample;
+    this.lastUpdated = new Date(snapshot.generatedAt);
+    this.currentPage = Math.min(this.currentPage, this.totalPages);
+    this.isLoading = false;
+  }
+
+  // ---- summary tabs ----
+
+  groupLabel(key: GroupKey): string {
+    return GROUPS[key].label;
+  }
+
+  groupDot(key: GroupKey): string {
+    return GROUPS[key].dot;
+  }
+
+  groupCount(key: GroupKey): number {
+    const statuses = GROUPS[key].statuses;
+    return statuses ? this.crewMembers.filter((crew) => statuses.includes(crew.status)).length : this.crewMembers.length;
+  }
+
+  selectGroup(key: GroupKey): void {
+    this.selectedGroup = key;
+    this.currentPage = 1;
+  }
+
+  // ---- crew table ----
+
+  // the role and base lists come from the loaded crew, so a new base shows up on its own
+  get roleOptions(): string[] {
+    return [...new Set(this.crewMembers.map((crew) => crew.role))].sort();
+  }
+
+  get baseOptions(): string[] {
+    return [...new Set(this.crewMembers.map((crew) => crew.base))].sort();
+  }
+
   get filteredCrewMembers(): CrewMember[] {
     const query = this.searchTerm.trim().toLowerCase();
+    const statuses = GROUPS[this.selectedGroup].statuses;
+
     return this.crewMembers
-      .filter(crew => !query || crew.name.toLowerCase().includes(query) || crew.employeeId.toLowerCase().includes(query))
-      .filter(crew => this.selectedStatus === 'All' || crew.status === this.selectedStatus)
-      .filter(crew => this.selectedRole === 'All' || crew.role === this.selectedRole)
-      .filter(crew => this.selectedBase === 'All' || crew.base === this.selectedBase)
-      .filter(crew => this.matchesDateRange(crew.nextDuty))
-      .sort((left, right) => this.compareCrew(left, right));
+      .filter((crew) => !query || crew.name.toLowerCase().includes(query) || crew.employeeId.toLowerCase().includes(query))
+      .filter((crew) => !statuses || statuses.includes(crew.status))
+      .filter((crew) => !this.selectedRole || crew.role === this.selectedRole)
+      .filter((crew) => !this.selectedBase || crew.base === this.selectedBase)
+      .sort((a, b) => this.compareCrew(a, b));
   }
 
-  // Connected to the visible rows in the main table and to the page numbers shown in `.pagination-bar`.
-  // This keeps the current page to a fixed slice of the filtered list so the view is smaller and easier to browse.
   get visibleCrewMembers(): CrewMember[] {
     const start = (this.currentPage - 1) * this.pageSize;
     return this.filteredCrewMembers.slice(start, start + this.pageSize);
   }
 
-  // Connected to the text “Page x of y” and the Previous/Next buttons in `.pagination-bar`.
-  // This calculates the available page count so the UI knows how many pages exist and prevents invalid page numbers.
   get totalPages(): number {
     return Math.max(1, Math.ceil(this.filteredCrewMembers.length / this.pageSize));
   }
 
-  // Connected to the page summary in `.pagination-bar` (`Showing {{ pageStart }}–{{ pageEnd }}`).
-  // This returns the first and last row numbers for the current page so the user can see what range of records is on screen.
   get pageStart(): number {
     return this.filteredCrewMembers.length ? (this.currentPage - 1) * this.pageSize + 1 : 0;
   }
@@ -134,109 +190,85 @@ export class FdtlComponent implements OnInit, OnDestroy {
     return Math.min(this.currentPage * this.pageSize, this.filteredCrewMembers.length);
   }
 
-  // Connected to the “Last checked” label in the `.system-status` section.
-  // This formats the timestamp from the last compliance run into a readable date/time string for the page header.
-  get lastCheckedLabel(): string {
-    return this.lastChecked.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
-  }
-
-  // Connected to all filter controls in the HTML (`[(ngModel)]`, `.filter-toolbar`, `.select-filter`).
-  // This resets the page number and closes any open action menu whenever a filter changes, keeping the table state consistent with the new selection.
   onFiltersChanged(): void {
     this.currentPage = 1;
-    this.activeMenuId = null;
   }
 
-  // Connected to the “Reset Filters” button in the empty and filter states.
-  // This clears all selection states back to their defaults before re-running the same filter logic used by the table.
   resetFilters(): void {
     this.searchTerm = '';
-    this.selectedStatus = 'All';
-    this.selectedRole = 'All';
-    this.selectedBase = 'All';
-    this.onFiltersChanged();
+    this.selectedGroup = 'all';
+    this.selectedRole = '';
+    this.selectedBase = '';
+    this.currentPage = 1;
   }
 
-  // Connected to the pagination buttons in `.pagination-controls` and their disabled states.
-  // This keeps the current page inside a valid range so the table never tries to render a page that does not exist.
   changePage(page: number): void {
     this.currentPage = Math.min(Math.max(page, 1), this.totalPages);
   }
 
-  // Connected to the table header sort buttons and `[attr.aria-sort]` values in the crew table.
-  // This toggles the current sort field and direction so the rows can be ordered by name, duty, utilization, rest, or status.
   sortBy(key: SortKey): void {
     if (this.sortKey === key) {
       this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
     } else {
       this.sortKey = key;
-      this.sortDirection = 'asc';
+      // hours columns start with the most used crew
+      this.sortDirection = key === 'duty' || key === 'flight' ? 'desc' : 'asc';
     }
   }
 
-  // Connected to the sort buttons in the header cells and the screen-reader labels in the HTML.
-  // This returns the correct accessibility value for the current sorting direction so assistive tech can announce the column state clearly.
   sortAriaValue(key: SortKey): string {
     return this.sortKey !== key ? 'none' : this.sortDirection === 'asc' ? 'ascending' : 'descending';
   }
 
-  // Connected to the Refresh button in `.header-actions` and to the loading state in the summary/table sections.
-  // This starts the loading spinner, clears any old timeout, and then shows the toast message after the mock data is refreshed.
-  refreshData(): void {
-    this.isLoading = true;
-    this.hasError = false;
-    clearTimeout(this.loadTimer);
-    this.loadTimer = setTimeout(() => {
-      this.isLoading = false;
-      this.showToast('FDTL data refreshed using demo records.');
-    }, 500);
+  sortIcon(key: SortKey): string {
+    if (this.sortKey !== key) { return 'pi-sort-alt opacity-40'; }
+    return this.sortDirection === 'asc' ? 'pi-sort-amount-up-alt' : 'pi-sort-amount-down-alt';
   }
 
-  // Connected to the retry button in the error box (`.state-message.error-state`).
-  // This reuses the same refresh flow so the page can retry the demo load without duplicating logic.
-  retryLoad(): void {
-    this.refreshData();
+  // ---- alerts ----
+
+  get openAlertCount(): number {
+    return this.alerts.filter((alert) => !this.reviewedAlertIds.has(alert.id)).length;
   }
 
-  // Connected to the “Run Compliance Check” button in `.system-actions` and the spinner shown while the check is running.
-  // This prevents duplicate checks and updates the last checked time after a short delay so the user sees the demo check complete normally.
-  runComplianceCheck(): void {
-    if (this.isCheckingCompliance) return;
-    this.isCheckingCompliance = true;
-    this.checkTimer = setTimeout(() => {
-      this.lastChecked = new Date();
-      this.isCheckingCompliance = false;
-      this.showToast('Demo compliance check completed successfully.');
-    }, 900);
+  // alerts nobody has looked at yet come first
+  get sortedAlerts(): FdtlAlert[] {
+    return [...this.alerts].sort((a, b) =>
+      Number(this.reviewedAlertIds.has(a.id)) - Number(this.reviewedAlertIds.has(b.id)) ||
+      b.timestamp.localeCompare(a.timestamp)
+    );
   }
 
-  // Connected to the Export Report button in `.header-actions` and the report download actions in the crew detail menu.
-  // This converts the filtered crew records into CSV content and triggers a browser download so the user can export the current demo dataset.
-  exportReport(): void {
-    const rows = [
-      ['Crew Member', 'Employee ID', 'Role', 'Base', 'Status', 'Duty Hours', 'Flight Hours', 'Rest Remaining'],
-      ...this.filteredCrewMembers.map(crew => [
-        crew.name, crew.employeeId, crew.role, crew.base, crew.status,
-        this.usageCsv(crew.dutyUsage), this.usageCsv(crew.flightUsage), this.hoursCsv(crew.restRemainingHours),
-      ]),
-    ];
-    this.downloadCsv('fdtl-crew-report.csv', rows);
-    this.showToast('FDTL report exported.');
+  get shownAlerts(): FdtlAlert[] {
+    return this.showAllAlerts ? this.sortedAlerts : this.sortedAlerts.slice(0, 3);
   }
 
-  // Connected to the action buttons in the crew row menu and the drawer opened by `selectedCrew`.
-  // These methods keep the selected crew record, menu state, and download actions in step with what the user has clicked in the table and drawer.
-  downloadCrewReport(crew: CrewMember): void {
-    this.downloadCsv(`fdtl-${crew.employeeId.toLowerCase()}-report.csv`, [
-      ['Crew Member', 'Employee ID', 'Role', 'Base', 'Status'],
-      [crew.name, crew.employeeId, crew.role, crew.base, crew.status],
-    ]);
-    this.showToast(`Report downloaded for ${crew.name}.`);
+  markAlertReviewed(alert: FdtlAlert): void {
+    this.api.reviewAlert(alert.id).subscribe({
+      next: () => {
+        this.reviewedAlertIds.add(alert.id);
+        this.showToast('Alert marked as reviewed.');
+      },
+      error: () => this.showToast('Could not update the alert. Try again.', true),
+    });
+  }
+
+  severityTone(severity: FdtlAlert['severity']): string {
+    return severity === 'Violation' ? 'bg-red-50 text-red-600' : severity === 'Warning' ? 'bg-amber-50 text-amber-600' : 'bg-sky-50 text-sky-600';
+  }
+
+  severityIcon(severity: FdtlAlert['severity']): string {
+    return severity === 'Violation' ? 'pi-times-circle' : severity === 'Warning' ? 'pi-exclamation-triangle' : 'pi-info-circle';
+  }
+
+  // ---- crew drawer ----
+
+  crewName(crewId: string): string {
+    return this.crewMembers.find((crew) => crew.id === crewId)?.name ?? 'Crew member';
   }
 
   openCrewDetails(crew: CrewMember): void {
     this.selectedCrew = crew;
-    this.activeMenuId = null;
   }
 
   closeCrewDetails(): void {
@@ -246,163 +278,166 @@ export class FdtlComponent implements OnInit, OnDestroy {
   @HostListener('document:keydown.escape')
   onEscape(): void {
     this.closeCrewDetails();
-    this.activeMenuId = null;
   }
 
-  // Connected to the system action buttons and the review buttons in the upcoming duties and alert panels.
-  // These methods show short demo toast messages only; they help the UI behave like a real application without changing the mock data behind it.
-  viewPolicy(): void {
-    this.showToast('Active demo policy: Standard Crew Duty Policy.');
+  // ---- export ----
+
+  exportReport(): void {
+    const rows = [
+      ['Crew member', 'Employee ID', 'Role', 'Base', 'Status', 'Duty hours', 'Flight hours', 'Rest remaining'],
+      ...this.filteredCrewMembers.map((crew) => [
+        crew.name, crew.employeeId, crew.role, crew.base, crew.status,
+        this.usageText(crew.dutyUsage), this.usageText(crew.flightUsage), this.formatHours(crew.restRemainingHours),
+      ]),
+    ];
+    this.downloadCsv(`fdtl-crew-report-${this.todayKey()}.csv`, rows);
+    this.showToast('Report downloaded.');
   }
 
-  openSettings(): void {
-    this.showToast('FDTL settings are read-only in demo mode.');
+  downloadCrewReport(crew: CrewMember): void {
+    this.downloadCsv(`fdtl-${crew.employeeId.toLowerCase()}-${this.todayKey()}.csv`, [
+      ['Crew member', 'Employee ID', 'Role', 'Base', 'Status', 'Duty hours', 'Flight hours', 'Rest remaining'],
+      [
+        crew.name, crew.employeeId, crew.role, crew.base, crew.status,
+        this.usageText(crew.dutyUsage), this.usageText(crew.flightUsage), this.formatHours(crew.restRemainingHours),
+      ],
+    ]);
+    this.showToast(`Report downloaded for ${crew.name}.`);
   }
 
-  viewFullHistory(crew: CrewMember): void {
-    this.showToast(`Full history is not available in demo mode for ${crew.name}.`);
-  }
+  // ---- display helpers ----
 
-  crewName(crewId: string): string {
-    return this.crewMembers.find(crew => crew.id === crewId)?.name ?? 'Crew member';
-  }
-
-  toggleMenu(crewId: string): void {
-    this.activeMenuId = this.activeMenuId === crewId ? null : crewId;
-  }
-
-  markAlertReviewed(alert: FdtlAlert): void {
-    this.reviewedAlertIds.add(alert.id);
-    this.showToast('Alert marked as reviewed.');
-  }
-
-  reviewDuty(duty: DutyRecord): void {
-    this.showToast(`Duty ${duty.dutyId} added to review.`);
-  }
-
-  // Connected to the `.status-badge`, `.status-icon`, and `[ngClass]="statusClass(...)"` bindings in the crew table, alerts list, and crew drawer.
-  // These helper methods map each status label to the correct CSS class and icon so the same status text is shown with a consistent green, amber, red, or neutral style.
   statusClass(status: FdtlStatus | FdtlResult): string {
     switch (status) {
       case 'Compliant':
       case 'Valid':
-        return 'status-good';
+        return 'bg-green-50 text-green-700 ring-green-600/20';
       case 'Near Limit':
-        return 'status-warning';
+        return 'bg-amber-50 text-amber-700 ring-amber-600/20';
       case 'Violation':
       case 'Blocked':
-        return 'status-danger';
+        return 'bg-red-50 text-red-700 ring-red-600/20';
       case 'Rest Required':
       case 'Requires Review':
-        return 'status-review';
+        return 'bg-violet-50 text-violet-700 ring-violet-600/20';
       case 'No Data':
-        return 'status-neutral';
+        return 'bg-gray-100 text-gray-600 ring-gray-500/20';
     }
   }
 
   statusIcon(status: FdtlStatus | FdtlResult): string {
     switch (status) {
       case 'Compliant':
-      case 'Valid': return 'pi pi-check-circle';
-      case 'Near Limit': return 'pi pi-exclamation-triangle';
+      case 'Valid': return 'pi-check-circle';
+      case 'Near Limit': return 'pi-exclamation-triangle';
       case 'Violation':
-      case 'Blocked': return 'pi pi-times-circle';
+      case 'Blocked': return 'pi-times-circle';
       case 'Rest Required':
-      case 'Requires Review': return 'pi pi-clock';
-      case 'No Data': return 'pi pi-minus-circle';
+      case 'Requires Review': return 'pi-clock';
+      case 'No Data': return 'pi-minus-circle';
     }
   }
 
-  severityClass(severity: FdtlAlert['severity']): string {
-    return severity === 'Violation' ? 'status-danger' : severity === 'Warning' ? 'status-warning' : 'status-info';
+  initials(name: string): string {
+    return name.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join('');
   }
 
-  // Connected to the usage and rest values shown in the crew table and detail drawer (`{{ formatHours(...) }}`, `{{ formatUsage(...) }}`, `.usage-value`, `.mini-progress`).
-  // These formatting helpers turn raw mock numbers into readable values and percentage widths so the page displays consistent time and utilization information.
+  // 9.5 stays 9.5, 13 becomes 13
+  hoursText(value: number): string {
+    return Number.isInteger(value) ? String(value) : value.toFixed(1);
+  }
+
   formatHours(value: number | null): string {
-    return value === null ? '—' : `${value}h`;
+    return value === null ? '-' : `${this.hoursText(value)} h`;
   }
 
-  formatUsage(usage: Usage | null): string {
-    return usage ? `${usage.used}h / ${usage.limit}h` : 'No data';
+  usageText(usage: Usage | null): string {
+    return usage ? `${this.hoursText(usage.used)} / ${this.hoursText(usage.limit)} h` : 'No data';
   }
 
   usagePercent(usage: Usage | null): number {
-    if (!usage || usage.limit <= 0) return 0;
+    if (!usage || usage.limit <= 0) { return 0; }
     return Math.min((usage.used / usage.limit) * 100, 100);
   }
 
-  usageClass(usage: Usage | null): string {
-    if (!usage) return 'progress-neutral';
+  // red at the limit, amber when close to it
+  usageBar(usage: Usage | null): string {
+    if (!usage || usage.limit <= 0) { return 'bg-gray-300'; }
     const ratio = usage.used / usage.limit;
-    return ratio >= 1 ? 'progress-danger' : ratio >= 0.85 ? 'progress-warning' : 'progress-good';
+    return ratio >= 1 ? 'bg-red-500' : ratio >= 0.85 ? 'bg-amber-400' : 'bg-sky-500';
   }
 
-  formatDateTime(value: string | null): string {
-    if (!value) return 'Not scheduled';
-    return new Date(value).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  usageTextClass(usage: Usage | null): string {
+    if (!usage || usage.limit <= 0) { return 'text-gray-500'; }
+    const ratio = usage.used / usage.limit;
+    return ratio >= 1 ? 'font-medium text-red-600' : ratio >= 0.85 ? 'text-amber-600' : 'text-gray-700';
   }
 
-  // Connected to the toast notification shown after actions such as refresh, export, review, and compliance checks.
-  // This method stores the active message and clears the previous timeout so the notification stays visible for a short time, then disappears cleanly.
-  showToast(message: string): void {
+  // "Today, 1:40 pm", "Tomorrow, 9:00 am" or "4 Oct, 6:15 am"
+  formatWhen(value: string | null): string {
+    if (!value) { return 'Not scheduled'; }
+
+    const date = new Date(value);
+    const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const diff = this.dayDiff(date);
+
+    if (diff === 0) { return `Today, ${time}`; }
+    if (diff === 1) { return `Tomorrow, ${time}`; }
+    if (diff === -1) { return `Yesterday, ${time}`; }
+    return `${date.toLocaleDateString([], { day: 'numeric', month: 'short' })}, ${time}`;
+  }
+
+  // report and release in one line, the day is repeated only when the duty crosses midnight
+  formatDuty(report: string, release: string): string {
+    const end = new Date(release);
+    const sameDay = this.dayDiff(new Date(report)) === this.dayDiff(end);
+    const endText = sameDay ? end.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : this.formatWhen(release);
+    return `${this.formatWhen(report)} - ${endText}`;
+  }
+
+  showToast(message: string, isError = false): void {
     this.toastMessage = message;
+    this.toastIsError = isError;
     clearTimeout(this.toastTimer);
-    this.toastTimer = setTimeout(() => this.toastMessage = '', 3500);
+    this.toastTimer = setTimeout(() => (this.toastMessage = ''), 3500);
   }
 
-  // Connected to the sort buttons and the row ordering logic used by the “Crew Compliance” table.
-  // This helper compares two crew records using the current sort column and direction so the table can return the correct order for display.
-  private compareCrew(left: CrewMember, right: CrewMember): number {
+  // ---- private helpers ----
+
+  private compareCrew(a: CrewMember, b: CrewMember): number {
     let result = 0;
     switch (this.sortKey) {
-      case 'name': result = left.name.localeCompare(right.name); break;
-      case 'nextDuty': result = (left.nextDuty ?? '').localeCompare(right.nextDuty ?? ''); break;
-      case 'dutyUtilization': result = this.utilization(left.dutyUsage) - this.utilization(right.dutyUsage); break;
-      case 'flightUtilization': result = this.utilization(left.flightUsage) - this.utilization(right.flightUsage); break;
-      case 'rest': result = (left.restRemainingHours ?? -1) - (right.restRemainingHours ?? -1); break;
-      case 'status': result = this.statusRank(left.status) - this.statusRank(right.status); break;
+      case 'name': result = a.name.localeCompare(b.name); break;
+      case 'status': result = SEVERITY[a.status] - SEVERITY[b.status]; break;
+      case 'duty': result = this.utilization(a.dutyUsage) - this.utilization(b.dutyUsage); break;
+      case 'flight': result = this.utilization(a.flightUsage) - this.utilization(b.flightUsage); break;
     }
-    return this.sortDirection === 'asc' ? result : -result;
+    // equal rows stay in name order, so the list doesn't jump around
+    return (this.sortDirection === 'asc' ? result : -result) || a.name.localeCompare(b.name);
   }
 
   private utilization(usage: Usage | null): number {
     return usage && usage.limit ? usage.used / usage.limit : -1;
   }
 
-  private statusRank(status: FdtlStatus): number {
-    return this.statusOptions.indexOf(status);
-  }
-
-  // Connected to the date filter in the page header (`selectedDateRange`, `customDate`, `select` and `input[type=date]`).
-  // This check decides whether a crew member's next duty falls inside the chosen reporting period so the visible table matches the selected date window.
-  private matchesDateRange(nextDuty: string | null): boolean {
-    if (!nextDuty) return true;
-    const dutyDate = new Date(nextDuty);
-    const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    if (this.selectedDateRange === 'Custom Date') return dateKey(dutyDate) === this.customDate;
+  // whole days between a date and today, negative means in the past
+  private dayDiff(date: Date): number {
+    const day = new Date(date);
+    day.setHours(0, 0, 0, 0);
     const today = new Date();
-    if (this.selectedDateRange === 'Today') return dateKey(dutyDate) === dateKey(today);
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - ((today.getDay() + 6) % 7));
-    startOfWeek.setHours(0, 0, 0, 0);
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 7);
-    return dutyDate >= startOfWeek && dutyDate < endOfWeek;
+    today.setHours(0, 0, 0, 0);
+    return Math.round((day.getTime() - today.getTime()) / 86400000);
   }
 
-  // Connected to the report export actions in the page header and crew detail menu.
-  // These helpers turn the visible data into CSV rows and then create a download so the export matches the current filtered FDTL view.
-  private usageCsv(usage: Usage | null): string {
-    return usage ? `${usage.used}h / ${usage.limit}h` : 'No data';
-  }
-
-  private hoursCsv(hours: number | null): string {
-    return hours === null ? 'No data' : `${hours}h`;
+  private todayKey(): string {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${now.getFullYear()}-${month}-${day}`;
   }
 
   private downloadCsv(filename: string, rows: string[][]): void {
-    const content = rows.map(row => row.map(value => `"${value.replaceAll('"', '""')}"`).join(',')).join('\n');
+    const content = rows.map((row) => row.map((value) => `"${value.replaceAll('"', '""')}"`).join(',')).join('\n');
     const url = URL.createObjectURL(new Blob([content], { type: 'text/csv;charset=utf-8' }));
     const link = document.createElement('a');
     link.href = url;
@@ -410,5 +445,4 @@ export class FdtlComponent implements OnInit, OnDestroy {
     link.click();
     URL.revokeObjectURL(url);
   }
-
 }
